@@ -1,0 +1,12 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Frida server binaries (downloaded automatically if missing)
+frida-server*
+
+# Backups and temporary files
+yedek/
+*.log
+temp*.txt
