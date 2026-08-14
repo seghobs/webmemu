@@ -804,6 +804,38 @@ class BypassManager:
             mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
             
         if not os.path.exists(mitm_cert_path):
+            user_cert_res = subprocess.run(
+                f'"{self.adb_path}" shell "ls /data/misc/user/0/cacerts-added/"',
+                shell=True, capture_output=True, text=True, encoding='utf-8', errors='ignore'
+            )
+            if "c8750f0d.0" in user_cert_res.stdout:
+                self.log("Sertifika emülatörün kullanıcı deposunda bulundu. Sistem deposuna aktarılıyor...", "process")
+                subprocess.run(f'"{self.adb_path}" shell "mount -o rw,remount /system"', shell=True, capture_output=True)
+                subprocess.run(f'"{self.adb_path}" shell "mount -o rw,remount /"', shell=True, capture_output=True)
+                
+                cp_res = subprocess.run(
+                    f'"{self.adb_path}" shell "cp /data/misc/user/0/cacerts-added/c8750f0d.0 /system/etc/security/cacerts/c8750f0d.0"',
+                    shell=True, capture_output=True
+                )
+                if cp_res.returncode == 0:
+                    subprocess.run(f'"{self.adb_path}" shell "chmod 644 /system/etc/security/cacerts/c8750f0d.0"', shell=True, capture_output=True)
+                    subprocess.run(f'"{self.adb_path}" shell "mount -o ro,remount /system"', shell=True, capture_output=True)
+                    self.log("Sertifika kullanıcı deposundan doğrudan sistem deposuna kopyalandı.", "success")
+                    return True, "Sertifika başarıyla kuruldu!"
+                else:
+                    bind_cmds = (
+                        "mkdir -p /dev/tmp/cacerts && "
+                        "cp /system/etc/security/cacerts/* /dev/tmp/cacerts/ && "
+                        "cp /data/misc/user/0/cacerts-added/c8750f0d.0 /dev/tmp/cacerts/ && "
+                        "chmod 644 /dev/tmp/cacerts/* && "
+                        "chown root:root /dev/tmp/cacerts/* && "
+                        "mount --bind /dev/tmp/cacerts /system/etc/security/cacerts"
+                    )
+                    bind_res = subprocess.run(f'"{self.adb_path}" shell "{bind_cmds}"', shell=True, capture_output=True)
+                    if bind_res.returncode == 0:
+                        self.log("Sertifika kullanıcı deposundan bind-mount yöntemiyle sistem deposuna kopyalandı.", "success")
+                        return True, "Sertifika başarıyla kuruldu!"
+            
             self.log("Hata: Ne mitm.it üzerinden indirilebildi ne de yerel mitmproxy sertifikası bulunabildi!", "error")
             return False, "Yerel mitmproxy sertifikası veya mitm.it adresi bulunamadı!"
             
