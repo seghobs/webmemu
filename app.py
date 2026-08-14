@@ -11,8 +11,12 @@ app = Flask(__name__)
 
 class BypassManager:
     def __init__(self):
-        self.adb_path = r"C:\Program Files\Microvirt\MEmu\adb.exe"
         self.project_dir = os.path.dirname(os.path.abspath(__file__))
+        self.memu_dir = self.find_memu_dir()
+        if self.memu_dir:
+            self.adb_path = os.path.join(self.memu_dir, "adb.exe")
+        else:
+            self.adb_path = r"C:\Program Files\Microvirt\MEmu\adb.exe"
         self.device_connected = False
         self.frida_server_running = False
         self.bypass_running = False
@@ -21,6 +25,117 @@ class BypassManager:
         self.log_queue = queue.Queue()
         self.log_history = []
         self.proxy_status = "Bilinmiyor"
+
+    def find_memu_dir(self):
+        # 1. Try registry
+        try:
+            import winreg
+            reg_paths = [
+                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\MEmu"),
+                (winreg.HKEY_CURRENT_USER, r"Software\Microvirt\MEmu"),
+                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microvirt\MEmu"),
+                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microvirt\MEmu")
+            ]
+            for hkey, subkey in reg_paths:
+                try:
+                    with winreg.OpenKey(hkey, subkey) as key:
+                        for val_name in ["InstallLocation", "InstallPath", "Path", "UninstallString"]:
+                            try:
+                                path, _ = winreg.QueryValueEx(key, val_name)
+                                if path:
+                                    if "uninstall" in val_name.lower() or "uninst" in val_name.lower():
+                                        path = os.path.dirname(path)
+                                    path = path.strip('"')
+                                    if os.path.exists(path):
+                                        if os.path.exists(os.path.join(path, "MEmu.exe")):
+                                            return path
+                                        parent = os.path.dirname(path)
+                                        if os.path.exists(os.path.join(parent, "MEmu.exe")):
+                                            return parent
+                            except FileNotFoundError:
+                                continue
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 2. Check common paths on all drives
+        common_subs = [
+            r"Program Files\Microvirt\MEmu",
+            r"Program Files (x86)\Microvirt\MEmu",
+            r"Microvirt\MEmu",
+            r"MEmu"
+        ]
+        
+        # Get drives
+        try:
+            import string
+            from ctypes import windll
+            drives = []
+            bitmask = windll.kernel32.GetLogicalDrives()
+            for letter in string.ascii_uppercase:
+                if bitmask & 1:
+                    drives.append(letter + ":\\")
+                bitmask >>= 1
+        except Exception:
+            drives = ["C:\\", "D:\\", "E:\\", "F:\\"]
+            
+        for drive in drives:
+            for sub in common_subs:
+                check_path = os.path.join(drive, sub)
+                if os.path.exists(os.path.join(check_path, "MEmu.exe")):
+                    return check_path
+
+        # 3. Last resort search (shallow scan)
+        for drive in drives:
+            if not os.path.exists(drive):
+                continue
+            for root_dir in [drive, os.path.join(drive, "Program Files"), os.path.join(drive, "Program Files (x86)")]:
+                if not os.path.exists(root_dir):
+                    continue
+                try:
+                    for entry in os.scandir(root_dir):
+                        if entry.is_dir() and entry.name.lower() in ["microvirt", "memu"]:
+                            if entry.name.lower() == "memu" and os.path.exists(os.path.join(entry.path, "MEmu.exe")):
+                                return entry.path
+                            for sub_entry in os.scandir(entry.path):
+                                if sub_entry.is_dir() and sub_entry.name.lower() == "memu":
+                                    if os.path.exists(os.path.join(sub_entry.path, "MEmu.exe")):
+                                        return sub_entry.path
+                except Exception:
+                    pass
+        return None
+
+    def start_memu(self):
+        if not hasattr(self, 'memu_dir') or not self.memu_dir:
+            self.memu_dir = self.find_memu_dir()
+            if self.memu_dir:
+                self.adb_path = os.path.join(self.memu_dir, "adb.exe")
+                
+        if not self.memu_dir or not os.path.exists(os.path.join(self.memu_dir, "MEmu.exe")):
+            self.log("MEmu Player kurulum dizini bulunamadı!", "error")
+            return False, "MEmu Player kurulum dizini bulunamadı!"
+            
+        memu_exe = os.path.join(self.memu_dir, "MEmu.exe")
+        self.log(f"MEmu Player başlatılıyor: {memu_exe}", "process")
+        try:
+            subprocess.Popen(f'"{memu_exe}"', shell=True)
+            self.log("MEmu Player başlatma komutu gönderildi. Cihazın açılması biraz zaman alabilir.", "success")
+            
+            # Start automatic status checks
+            def delayed_checks():
+                for i in range(12): # check every 5 seconds for 1 minute
+                    time.sleep(5)
+                    self.log("Cihaz bağlantısı kontrol ediliyor...", "info")
+                    if self.check_devices():
+                        self.log("MEmu Player başarıyla bağlandı ve hazır hale geldi!", "success")
+                        break
+            threading.Thread(target=delayed_checks, daemon=True).start()
+            
+            return True, "MEmu Player başlatılıyor..."
+        except Exception as e:
+            self.log(f"MEmu başlatılamadı: {e}", "error")
+            return False, str(e)
         
     def log(self, message, level="info"):
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -572,6 +687,11 @@ def get_status():
 def check_devices():
     manager.check_devices()
     return get_status()
+
+@app.route('/api/start_memu', methods=['POST'])
+def start_memu():
+    success, msg = manager.start_memu()
+    return jsonify({"success": success, "message": msg})
 
 @app.route('/api/start_frida', methods=['POST'])
 def start_frida():

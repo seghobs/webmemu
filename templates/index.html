@@ -783,6 +783,9 @@
                 </button>
                 
                 <div style="margin-top: 15px;" class="panel-title">MEmu Araçları</div>
+                <button class="btn" id="btn-start-memu" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px; background: var(--accent);">
+                    <i class="fa-solid fa-desktop" style="margin-right: 0;"></i> MEmu Player Başlat
+                </button>
                 <button class="btn btn-secondary" id="btn-clean-ads" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <i class="fa-solid fa-ban" style="margin-right: 0;"></i> MEmu Reklamlarını Temizle
                 </button>
@@ -1069,6 +1072,7 @@
         const btnStopBypass = document.getElementById('btn-stop-bypass');
         const btnInjectScript = document.getElementById('btn-inject-script');
         const btnRefresh = document.getElementById('btn-refresh');
+        const btnStartMemu = document.getElementById('btn-start-memu');
 
         const proxyIp = document.getElementById('proxy-ip');
         const proxyPort = document.getElementById('proxy-port');
@@ -1491,6 +1495,25 @@
 
         btnProxyOff.addEventListener('click', () => {
             postAction('/api/toggle_proxy', { enabled: false });
+        });
+
+        btnStartMemu.addEventListener('click', async () => {
+            btnStartMemu.disabled = true;
+            const originalHTML = btnStartMemu.innerHTML;
+            btnStartMemu.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 0; color: white !important;"></i> Başlatılıyor...';
+            try {
+                const res = await postAction('/api/start_memu');
+                if (res && res.success) {
+                    console.log("MEmu başlatıldı:", res.message);
+                } else {
+                    alert("MEmu başlatılamadı: " + (res ? res.message : "Bilinmeyen hata"));
+                }
+            } catch (err) {
+                console.error("MEmu başlatma hatası:", err);
+            } finally {
+                btnStartMemu.disabled = false;
+                btnStartMemu.innerHTML = originalHTML;
+            }
         });
 
         btnSaveScript.addEventListener('click', saveScript);
