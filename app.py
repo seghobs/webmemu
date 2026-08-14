@@ -482,8 +482,9 @@ class BypassManager:
         self.extra_processes = []
         subprocess.run('taskkill /F /IM frida.exe 2>nul', shell=True, capture_output=True)
         if app_package:
-            self.run_adb_cmd(f"shell am force-stop {app_package}")
-            self.log(f"{app_package} cihazda tamamen kapatıldı.", "success")
+            self.run_adb_cmd(f"shell pm disable-user --user 0 {app_package}")
+            self.run_adb_cmd(f"shell pm enable {app_package}")
+            self.log(f"{app_package} cihazda tamamen kapatıldı ve arka plan/recent listesinden temizlendi.", "success")
         else:
             self.log("Bypass durduruldu", "success")
 
@@ -1063,8 +1064,9 @@ def force_stop_package():
     data = request.json or {}
     app_package = data.get("app_package", "")
     if app_package:
-        manager.run_adb_cmd(f"shell am force-stop {app_package}")
-        manager.log(f"{app_package} sonlandırıldı.", "success")
+        manager.run_adb_cmd(f"shell pm disable-user --user 0 {app_package}")
+        manager.run_adb_cmd(f"shell pm enable {app_package}")
+        manager.log(f"{app_package} sonlandırıldı ve arka plan/recent listesinden temizlendi.", "success")
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Geçersiz paket"})
 
