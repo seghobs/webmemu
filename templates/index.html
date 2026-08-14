@@ -1276,7 +1276,8 @@
                         subtitle: 'Frida script'
                     }));
                     scriptSelect.setOptions(mapped);
-                    scriptSelect.setValue(mapped[0].value);
+                    const defaultScript = mapped.find(s => s.value === 'nev1.js') ? 'nev1.js' : mapped[0].value;
+                    scriptSelect.setValue(defaultScript);
                 } else {
                     setFallbackScripts();
                 }
