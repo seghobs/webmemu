@@ -428,9 +428,24 @@ class BypassManager:
     def stop_bypass(self, app_package=None):
         self.bypass_running = False
         if self.bypass_process:
+            try:
+                if self.bypass_process.stdout:
+                    self.bypass_process.stdout.close()
+                if self.bypass_process.stdin:
+                    self.bypass_process.stdin.close()
+            except:
+                pass
             self.bypass_process.terminate()
             self.bypass_process = None
+            
         for proc in self.extra_processes:
+            try:
+                if proc.stdout:
+                    proc.stdout.close()
+                if proc.stdin:
+                    proc.stdin.close()
+            except:
+                pass
             try:
                 proc.terminate()
             except:
