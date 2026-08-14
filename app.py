@@ -718,12 +718,13 @@ class BypassManager:
             return "no_device", False
             
         mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
-        if not os.path.exists(mitm_cert_path):
-            return "no_local_cert", False
+        subject_hash = None
+        if os.path.exists(mitm_cert_path):
+            subject_hash = self.get_cert_hash(mitm_cert_path)
             
-        subject_hash = self.get_cert_hash(mitm_cert_path)
+        # Fallback to standard mitmproxy hash if local file is missing
         if not subject_hash:
-            return "hash_failed", False
+            subject_hash = "c8750f0d"
             
         cert_filename = f"{subject_hash}.0"
         result = subprocess.run(
@@ -735,6 +736,47 @@ class BypassManager:
         else:
             return "not_installed", False
 
+    def download_mitm_cert(self):
+        proxy_host = None
+        proxy_port = None
+        if self.proxy_status and ":" in self.proxy_status:
+            parts = self.proxy_status.split(":")
+            if len(parts) == 2:
+                proxy_host = parts[0]
+                proxy_port = parts[1]
+                
+        if not proxy_host or not proxy_port:
+            proxy_host = "127.0.0.1"
+            proxy_port = "8080"
+            
+        self.log(f"Sertifika http://mitm.it/cert/pem adresinden indiriliyor... (Proxy: {proxy_host}:{proxy_port})", "process")
+        temp_pem_path = os.path.join(self.project_dir, "downloaded_mitm_ca.pem")
+        
+        try:
+            import urllib.request
+            proxy_support = urllib.request.ProxyHandler({
+                'http': f'http://{proxy_host}:{proxy_port}',
+                'https': f'http://{proxy_host}:{proxy_port}'
+            })
+            opener = urllib.request.build_opener(proxy_support)
+            urllib.request.install_opener(opener)
+            
+            req = urllib.request.Request("http://mitm.it/cert/pem", headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                content = response.read()
+                
+            if b"BEGIN CERTIFICATE" in content:
+                with open(temp_pem_path, "wb") as f:
+                    f.write(content)
+                self.log("Sertifika http://mitm.it üzerinden başarıyla indirildi!", "success")
+                return temp_pem_path
+            else:
+                self.log("İndirilen içerik geçerli bir sertifika değil (mitmproxy çalışıyor mu?).", "error")
+                return None
+        except Exception as e:
+            self.log(f"mitm.it üzerinden indirme başarısız: {e}", "warning")
+            return None
+
     def install_mitm_cert(self):
         if not self.device_connected:
             self.check_devices()
@@ -742,13 +784,23 @@ class BypassManager:
             self.log("Sertifika yüklemek için cihaz bağlı olmalıdır!", "error")
             return False, "Cihaz bağlı değil!"
             
-        mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
+        # Try downloading online from mitm.it first
+        mitm_cert_path = self.download_mitm_cert()
+        is_downloaded = mitm_cert_path is not None
+        
+        if not mitm_cert_path:
+            self.log("Yerel mitmproxy sertifika dosyası aranıyor...", "process")
+            mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
+            
         if not os.path.exists(mitm_cert_path):
-            self.log("mitmproxy CA sertifikası bulunamadı! Lütfen mitmproxy'yi çalıştırıp sertifikaların oluşmasını sağlayın.", "error")
-            return False, "Yerel mitmproxy sertifikası bulunamadı!"
+            self.log("Hata: Ne mitm.it üzerinden indirilebildi ne de yerel mitmproxy sertifikası bulunabildi!", "error")
+            return False, "Yerel mitmproxy sertifikası veya mitm.it adresi bulunamadı!"
             
         subject_hash = self.get_cert_hash(mitm_cert_path)
         if not subject_hash:
+            if is_downloaded:
+                try: os.remove(mitm_cert_path)
+                except: pass
             return False, "Sertifika hash değeri hesaplanamadı!"
             
         cert_filename = f"{subject_hash}.0"
@@ -759,6 +811,12 @@ class BypassManager:
         
         # 1. Push cert to temporary folder
         push_res = subprocess.run(f'"{self.adb_path}" push "{mitm_cert_path}" {temp_device_path}', shell=True, capture_output=True, text=True)
+        
+        # Clean up local temporary download file
+        if is_downloaded:
+            try: os.remove(mitm_cert_path)
+            except: pass
+            
         if push_res.returncode != 0:
             self.log(f"Sertifika cihaza kopyalanamadı: {push_res.stderr}", "error")
             return False, "Dosya kopyalama hatası!"
