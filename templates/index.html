@@ -742,6 +742,12 @@
                     <span class="status-label">Global Proxy</span>
                     <span class="status-value" id="val-proxy">Kontrol ediliyor...</span>
                 </div>
+
+                <div class="status-row">
+                    <div class="status-dot" id="dot-cert"></div>
+                    <span class="status-label">Mitmproxy Cert</span>
+                    <span class="status-value" id="val-cert">Kontrol ediliyor...</span>
+                </div>
             </div>
 
             <!-- Proxy Ayarları -->
@@ -754,6 +760,22 @@
                 <div class="proxy-btn-row">
                     <button class="btn btn-secondary btn-mini" id="btn-proxy-on">Aç</button>
                     <button class="btn btn-secondary btn-mini" id="btn-proxy-off">Kapat</button>
+                </div>
+            </div>
+
+            <!-- Sertifika Kontrolü -->
+            <div class="proxy-panel">
+                <div class="panel-title">Sertifika Yönetimi</div>
+                <div style="font-size: 11px; margin-bottom: 10px; color: var(--text-dim);">
+                    mitmproxy CA sertifikasını (Root CA) cihazın sistemine yükleyin veya kaldırın.
+                </div>
+                <div id="cert-action-container" style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn btn-secondary btn-mini" id="btn-cert-install" style="background: var(--accent); color: white;">
+                        <i class="fa-solid fa-download" style="margin-right: 4px; color: white !important;"></i> Sertifikayı Yükle
+                    </button>
+                    <button class="btn btn-secondary btn-mini" id="btn-cert-remove" style="background: var(--error); color: white;">
+                        <i class="fa-solid fa-trash" style="margin-right: 4px; color: white !important;"></i> Sertifikayı Kaldır
+                    </button>
                 </div>
             </div>
 
@@ -1065,6 +1087,8 @@
         const valFrida = document.getElementById('val-frida');
         const dotProxy = document.getElementById('dot-proxy');
         const valProxy = document.getElementById('val-proxy');
+        const dotCert = document.getElementById('dot-cert');
+        const valCert = document.getElementById('val-cert');
 
         const btnStartFrida = document.getElementById('btn-start-frida');
         const btnStopFrida = document.getElementById('btn-stop-frida');
@@ -1078,6 +1102,8 @@
         const proxyPort = document.getElementById('proxy-port');
         const btnProxyOn = document.getElementById('btn-proxy-on');
         const btnProxyOff = document.getElementById('btn-proxy-off');
+        const btnCertInstall = document.getElementById('btn-cert-install');
+        const btnCertRemove = document.getElementById('btn-cert-remove');
 
         const scriptEditor = document.getElementById('script-editor');
         const editorFilename = document.getElementById('editor-filename');
@@ -1143,6 +1169,23 @@
                 } else {
                     dotProxy.className = 'status-dot active';
                     valProxy.textContent = status.proxy_status;
+                }
+
+                // Cert status
+                if (status.cert_installed) {
+                    dotCert.className = 'status-dot active';
+                    valCert.textContent = status.cert_status;
+                    btnCertInstall.style.display = 'none';
+                    btnCertRemove.style.display = 'block';
+                } else {
+                    if (status.cert_status === "Kurulu Değil") {
+                        dotCert.className = 'status-dot inactive';
+                    } else {
+                        dotCert.className = 'status-dot warning';
+                    }
+                    valCert.textContent = status.cert_status;
+                    btnCertInstall.style.display = 'block';
+                    btnCertRemove.style.display = 'none';
                 }
             } catch (err) {
                 console.error('Durum güncellenemedi:', err);
@@ -1495,6 +1538,45 @@
 
         btnProxyOff.addEventListener('click', () => {
             postAction('/api/toggle_proxy', { enabled: false });
+        });
+
+        btnCertInstall.addEventListener('click', async () => {
+            btnCertInstall.disabled = true;
+            const originalHTML = btnCertInstall.innerHTML;
+            btnCertInstall.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 4px; color: white !important;"></i> Yükleniyor...';
+            try {
+                const res = await postAction('/api/install_cert');
+                if (res && res.success) {
+                    alert("Sertifika başarıyla kuruldu!");
+                } else {
+                    alert("Sertifika kurulum hatası: " + (res ? res.message : "Bilinmeyen hata"));
+                }
+            } catch (err) {
+                console.error("Sertifika yükleme hatası:", err);
+            } finally {
+                btnCertInstall.disabled = false;
+                btnCertInstall.innerHTML = originalHTML;
+            }
+        });
+
+        btnCertRemove.addEventListener('click', async () => {
+            if (!confirm("mitmproxy CA sertifikasını cihazdan kaldırmak istediğinize emin misiniz?")) return;
+            btnCertRemove.disabled = true;
+            const originalHTML = btnCertRemove.innerHTML;
+            btnCertRemove.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 4px; color: white !important;"></i> Kaldırılıyor...';
+            try {
+                const res = await postAction('/api/remove_cert');
+                if (res && res.success) {
+                    alert("Sertifika başarıyla kaldırıldı!");
+                } else {
+                    alert("Sertifika kaldırma hatası: " + (res ? res.message : "Bilinmeyen hata"));
+                }
+            } catch (err) {
+                console.error("Sertifika kaldırma hatası:", err);
+            } finally {
+                btnCertRemove.disabled = false;
+                btnCertRemove.innerHTML = originalHTML;
+            }
         });
 
         btnStartMemu.addEventListener('click', async () => {

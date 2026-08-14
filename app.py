@@ -667,6 +667,165 @@ class BypassManager:
             self.log(f"Paket Listeleme Hatası: {e}", "error")
             return fallback_list
 
+    def get_cert_hash(self, cert_path):
+        openssl_paths = [
+            r"C:\Program Files\Git\usr\bin\openssl.exe",
+            r"C:\Program Files\Git\bin\openssl.exe",
+            r"C:\Program Files (x86)\Git\bin\openssl.exe",
+            "openssl"
+        ]
+        
+        for openssl in openssl_paths:
+            try:
+                cmd = f'"{openssl}" x509 -inform PEM -subject_hash_old -in "{cert_path}" -noout'
+                res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+                if res.returncode == 0 and res.stdout.strip():
+                    return res.stdout.strip()
+            except Exception:
+                continue
+                
+        try:
+            from cryptography import x509
+            with open(cert_path, "rb") as f:
+                cert_bytes = f.read()
+            cert = x509.load_pem_x509_certificate(cert_bytes)
+            import hashlib
+            subject_der = cert.subject.public_bytes()
+            md5_hash = hashlib.md5(subject_der).digest()
+            val = (md5_hash[0] | (md5_hash[1] << 8) | (md5_hash[2] << 16) | (md5_hash[3] << 24))
+            return f"{val:08x}"
+        except Exception as e:
+            self.log(f"Hash hesaplama hatası: {e}", "error")
+            return None
+
+    def check_cert_status(self):
+        if not self.device_connected:
+            return "Cihaz Yok", False
+            
+        mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
+        if not os.path.exists(mitm_cert_path):
+            return "Yerel Sertifika Yok", False
+            
+        subject_hash = self.get_cert_hash(mitm_cert_path)
+        if not subject_hash:
+            return "Hash Alınamadı", False
+            
+        cert_filename = f"{subject_hash}.0"
+        result = subprocess.run(
+            f'"{self.adb_path}" shell "ls /system/etc/security/cacerts/{cert_filename}"',
+            shell=True, capture_output=True, text=True
+        )
+        if cert_filename in result.stdout:
+            return "Kurulu", True
+        else:
+            return "Kurulu Değil", False
+
+    def install_mitm_cert(self):
+        if not self.device_connected:
+            self.check_devices()
+        if not self.device_connected:
+            self.log("Sertifika yüklemek için cihaz bağlı olmalıdır!", "error")
+            return False, "Cihaz bağlı değil!"
+            
+        mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
+        if not os.path.exists(mitm_cert_path):
+            self.log("mitmproxy CA sertifikası bulunamadı! Lütfen mitmproxy'yi çalıştırıp sertifikaların oluşmasını sağlayın.", "error")
+            return False, "Yerel mitmproxy sertifikası bulunamadı!"
+            
+        subject_hash = self.get_cert_hash(mitm_cert_path)
+        if not subject_hash:
+            return False, "Sertifika hash değeri hesaplanamadı!"
+            
+        cert_filename = f"{subject_hash}.0"
+        temp_device_path = f"/data/local/tmp/{cert_filename}"
+        system_cacerts_path = f"/system/etc/security/cacerts/{cert_filename}"
+        
+        self.log("mitmproxy sertifikası yükleniyor...", "process")
+        
+        # 1. Push cert to temporary folder
+        push_res = subprocess.run(f'"{self.adb_path}" push "{mitm_cert_path}" {temp_device_path}', shell=True, capture_output=True, text=True)
+        if push_res.returncode != 0:
+            self.log(f"Sertifika cihaza kopyalanamadı: {push_res.stderr}", "error")
+            return False, "Dosya kopyalama hatası!"
+            
+        # 2. Try remounting system as RW
+        remount_cmds = [
+            "mount -o rw,remount /system",
+            "mount -o rw,remount /",
+            "mount -o rw,remount /system /system"
+        ]
+        
+        remounted = False
+        for r_cmd in remount_cmds:
+            res = subprocess.run(f'"{self.adb_path}" shell "su -c \'{r_cmd}\'"', shell=True, capture_output=True, text=True)
+            if res.returncode == 0:
+                remounted = True
+                break
+                
+        if not remounted:
+            self.log("Uyarı: /system dizini yazılabilir (RW) olarak yeniden bağlanamadı. İşleme devam ediliyor...", "warning")
+            
+        # 3. Copy file to /system/etc/security/cacerts/ and chmod 644
+        cp_cmd = f"cp {temp_device_path} {system_cacerts_path}"
+        chmod_cmd = f"chmod 644 {system_cacerts_path}"
+        rm_temp_cmd = f"rm {temp_device_path}"
+        
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'{cp_cmd}\'"', shell=True, capture_output=True)
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'{chmod_cmd}\'"', shell=True, capture_output=True)
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'{rm_temp_cmd}\'"', shell=True, capture_output=True)
+        
+        # 4. Remount system back to RO
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o ro,remount /system\'"', shell=True, capture_output=True)
+        
+        # 5. Check if successfully installed
+        check_res = subprocess.run(f'"{self.adb_path}" shell "ls {system_cacerts_path}"', shell=True, capture_output=True, text=True)
+        if cert_filename in check_res.stdout:
+            self.log(f"mitmproxy CA sertifikası ({cert_filename}) başarıyla sisteme kuruldu!", "success")
+            return True, "Sertifika başarıyla yüklendi!"
+        else:
+            self.log("Sertifika kurulumu başarısız! Sistem dizini korumalı olabilir veya root yetkisi verilmemiş olabilir.", "error")
+            return False, "Sertifika kopyalanamadı!"
+            
+    def remove_mitm_cert(self):
+        if not self.device_connected:
+            self.check_devices()
+        if not self.device_connected:
+            self.log("Sertifika silmek için cihaz bağlı olmalıdır!", "error")
+            return False, "Cihaz bağlı değil!"
+            
+        mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
+        if not os.path.exists(mitm_cert_path):
+            self.log("Yerel mitmproxy sertifikası bulunamadığı için hash değeri hesaplanamadı. Varsayılan hash kullanılıyor.", "warning")
+            subject_hash = "c8750f0d"
+        else:
+            subject_hash = self.get_cert_hash(mitm_cert_path)
+            if not subject_hash:
+                subject_hash = "c8750f0d"
+                
+        cert_filename = f"{subject_hash}.0"
+        system_cacerts_path = f"/system/etc/security/cacerts/{cert_filename}"
+        
+        self.log(f"mitmproxy sertifikası ({cert_filename}) sistemden kaldırılıyor...", "process")
+        
+        # 1. Remount system as RW
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o rw,remount /system\'"', shell=True, capture_output=True)
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o rw,remount /\'"', shell=True, capture_output=True)
+        
+        # 2. Delete the certificate file
+        rm_cmd = f"rm {system_cacerts_path}"
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'{rm_cmd}\'"', shell=True, capture_output=True)
+        
+        # 3. Remount system back to RO
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o ro,remount /system\'"', shell=True, capture_output=True)
+        
+        # 4. Check if successfully removed
+        check_res = subprocess.run(f'"{self.adb_path}" shell "ls {system_cacerts_path}"', shell=True, capture_output=True, text=True)
+        if cert_filename not in check_res.stdout:
+            self.log("mitmproxy CA sertifikası sistemden başarıyla kaldırıldı.", "success")
+            return True, "Sertifika kaldırıldı."
+        else:
+            self.log("Sertifika kaldırılamadı! Sistem dizini korumalı olabilir.", "error")
+            return False, "Sertifika silinemedi!"
 
 manager = BypassManager()
 
@@ -676,12 +835,25 @@ def index():
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
+    cert_status, cert_installed = manager.check_cert_status()
     return jsonify({
         "device_connected": manager.device_connected,
         "frida_server_running": manager.frida_server_running,
         "bypass_running": manager.bypass_running,
-        "proxy_status": manager.proxy_status
+        "proxy_status": manager.proxy_status,
+        "cert_status": cert_status,
+        "cert_installed": cert_installed
     })
+
+@app.route('/api/install_cert', methods=['POST'])
+def install_cert():
+    success, msg = manager.install_mitm_cert()
+    return jsonify({"success": success, "message": msg})
+
+@app.route('/api/remove_cert', methods=['POST'])
+def remove_cert():
+    success, msg = manager.remove_mitm_cert()
+    return jsonify({"success": success, "message": msg})
 
 @app.route('/api/check_devices', methods=['POST'])
 def check_devices():
