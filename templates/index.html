@@ -761,6 +761,9 @@
                     <button class="btn btn-secondary btn-mini" id="btn-proxy-on">Aç</button>
                     <button class="btn btn-secondary btn-mini" id="btn-proxy-off">Kapat</button>
                 </div>
+                <button class="btn btn-secondary btn-mini" id="btn-start-mitmweb" style="width: 100%; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent); color: white;">
+                    <i class="fa-solid fa-network-wired" style="margin-right: 0; color: white !important;"></i> Mitmweb Başlat
+                </button>
             </div>
 
             <!-- Sertifika Kontrolü -->
@@ -1126,6 +1129,7 @@
         const proxyPort = document.getElementById('proxy-port');
         const btnProxyOn = document.getElementById('btn-proxy-on');
         const btnProxyOff = document.getElementById('btn-proxy-off');
+        const btnStartMitmweb = document.getElementById('btn-start-mitmweb');
         const btnCertInstall = document.getElementById('btn-cert-install');
         const btnCertRemove = document.getElementById('btn-cert-remove');
 
@@ -1569,6 +1573,25 @@
 
         btnProxyOff.addEventListener('click', () => {
             postAction('/api/toggle_proxy', { enabled: false });
+        });
+
+        btnStartMitmweb.addEventListener('click', async () => {
+            btnStartMitmweb.disabled = true;
+            const originalHTML = btnStartMitmweb.innerHTML;
+            btnStartMitmweb.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 0; color: white !important;"></i> Başlatılıyor...';
+            try {
+                const res = await postAction('/api/start_mitmweb');
+                if (res && res.success) {
+                    console.log("Mitmweb başlatıldı:", res.message);
+                } else {
+                    alert("Mitmweb başlatılamadı: " + (res ? res.message : "Bilinmeyen hata"));
+                }
+            } catch (err) {
+                console.error("Mitmweb başlatma hatası:", err);
+            } finally {
+                btnStartMitmweb.disabled = false;
+                btnStartMitmweb.innerHTML = originalHTML;
+            }
         });
 
         btnCertInstall.addEventListener('click', async () => {

@@ -136,6 +136,16 @@ class BypassManager:
         except Exception as e:
             self.log(f"MEmu başlatılamadı: {e}", "error")
             return False, str(e)
+
+    def start_mitmweb(self):
+        self.log("Mitmweb yeni bir CMD penceresinde başlatılıyor...", "process")
+        try:
+            subprocess.Popen("start cmd.exe /k \"mitmweb\"", shell=True)
+            self.log("Mitmweb başarıyla başlatıldı!", "success")
+            return True, "Mitmweb başlatıldı!"
+        except Exception as e:
+            self.log(f"Mitmweb başlatılamadı: {e}", "error")
+            return False, str(e)
         
     def log(self, message, level="info"):
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -989,6 +999,11 @@ def check_devices():
 @app.route('/api/start_memu', methods=['POST'])
 def start_memu():
     success, msg = manager.start_memu()
+    return jsonify({"success": success, "message": msg})
+
+@app.route('/api/start_mitmweb', methods=['POST'])
+def start_mitmweb():
+    success, msg = manager.start_mitmweb()
     return jsonify({"success": success, "message": msg})
 
 @app.route('/api/start_frida', methods=['POST'])
