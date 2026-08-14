@@ -140,7 +140,7 @@ class BypassManager:
     def start_mitmweb(self):
         self.log("Mitmweb yeni bir CMD penceresinde başlatılıyor...", "process")
         try:
-            subprocess.Popen("start cmd.exe /k \"mitmweb --set web_token=123456\"", shell=True)
+            subprocess.Popen("start cmd.exe /k \"mitmweb --set web_token=123456 --no-web-open-browser\"", shell=True)
             self.log("Mitmweb başarıyla başlatıldı!", "success")
             
             def open_browser():
