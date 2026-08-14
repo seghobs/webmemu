@@ -748,42 +748,41 @@ class BypassManager:
             self.log(f"Sertifika cihaza kopyalanamadı: {push_res.stderr}", "error")
             return False, "Dosya kopyalama hatası!"
             
-        # 2. Try remounting system as RW
-        remount_cmds = [
-            "mount -o rw,remount /system",
-            "mount -o rw,remount /",
-            "mount -o rw,remount /system /system"
-        ]
+        # 2. Try normal direct copy first (if system is already RW)
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o rw,remount /system\'"', shell=True, capture_output=True)
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o rw,remount /\'"', shell=True, capture_output=True)
         
-        remounted = False
-        for r_cmd in remount_cmds:
-            res = subprocess.run(f'"{self.adb_path}" shell "su -c \'{r_cmd}\'"', shell=True, capture_output=True, text=True)
-            if res.returncode == 0:
-                remounted = True
-                break
-                
-        if not remounted:
-            self.log("Uyarı: /system dizini yazılabilir (RW) olarak yeniden bağlanamadı. İşleme devam ediliyor...", "warning")
+        cp_res = subprocess.run(f'"{self.adb_path}" shell "su -c \'cp {temp_device_path} {system_cacerts_path}\'"', shell=True, capture_output=True)
+        if cp_res.returncode == 0:
+            subprocess.run(f'"{self.adb_path}" shell "su -c \'chmod 644 {system_cacerts_path}\'"', shell=True, capture_output=True)
+            subprocess.run(f'"{self.adb_path}" shell "su -c \'rm {temp_device_path}\'"', shell=True, capture_output=True)
+            subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o ro,remount /system\'"', shell=True, capture_output=True)
+            self.log("Sertifika doğrudan /system dizinine kopyalandı.", "success")
+        else:
+            # 3. If direct copy failed (Read-only fs), use the bind-mount trick!
+            self.log("Dizin korumalı, bind-mount (geçici bellek bağlama) yöntemi kullanılıyor...", "warning")
+            bind_cmds = (
+                f"mkdir -p /dev/tmp/cacerts && "
+                f"cp /system/etc/security/cacerts/* /dev/tmp/cacerts/ && "
+                f"cp {temp_device_path} /dev/tmp/cacerts/ && "
+                f"chmod 644 /dev/tmp/cacerts/* && "
+                f"chown root:root /dev/tmp/cacerts/* && "
+                f"mount --bind /dev/tmp/cacerts /system/etc/security/cacerts"
+            )
+            bind_res = subprocess.run(f'"{self.adb_path}" shell "su -c \'{bind_cmds}\'"', shell=True, capture_output=True, text=True)
+            subprocess.run(f'"{self.adb_path}" shell "su -c \'rm -f {temp_device_path}\'"', shell=True, capture_output=True)
             
-        # 3. Copy file to /system/etc/security/cacerts/ and chmod 644
-        cp_cmd = f"cp {temp_device_path} {system_cacerts_path}"
-        chmod_cmd = f"chmod 644 {system_cacerts_path}"
-        rm_temp_cmd = f"rm {temp_device_path}"
-        
-        subprocess.run(f'"{self.adb_path}" shell "su -c \'{cp_cmd}\'"', shell=True, capture_output=True)
-        subprocess.run(f'"{self.adb_path}" shell "su -c \'{chmod_cmd}\'"', shell=True, capture_output=True)
-        subprocess.run(f'"{self.adb_path}" shell "su -c \'{rm_temp_cmd}\'"', shell=True, capture_output=True)
-        
-        # 4. Remount system back to RO
-        subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o ro,remount /system\'"', shell=True, capture_output=True)
-        
-        # 5. Check if successfully installed
+            if bind_res.returncode != 0:
+                self.log(f"Bind-mount hatası: {bind_res.stderr}", "error")
+                return False, "Sertifika kurulumu başarısız!"
+                
+        # 4. Check if successfully installed
         check_res = subprocess.run(f'"{self.adb_path}" shell "ls {system_cacerts_path}"', shell=True, capture_output=True, text=True)
         if cert_filename in check_res.stdout:
-            self.log(f"mitmproxy CA sertifikası ({cert_filename}) başarıyla sisteme kuruldu!", "success")
+            self.log(f"mitmproxy CA sertifikası ({cert_filename}) başarıyla kuruldu!", "success")
             return True, "Sertifika başarıyla yüklendi!"
         else:
-            self.log("Sertifika kurulumu başarısız! Sistem dizini korumalı olabilir veya root yetkisi verilmemiş olabilir.", "error")
+            self.log("Sertifika kurulumu doğrulanmadı!", "error")
             return False, "Sertifika kopyalanamadı!"
             
     def remove_mitm_cert(self):
@@ -795,7 +794,7 @@ class BypassManager:
             
         mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
         if not os.path.exists(mitm_cert_path):
-            self.log("Yerel mitmproxy sertifikası bulunamadığı için hash değeri hesaplanamadı. Varsayılan hash kullanılıyor.", "warning")
+            self.log("Yerel mitmproxy sertifikası bulunamadı, varsayılan hash 'c8750f0d' kullanılıyor.", "warning")
             subject_hash = "c8750f0d"
         else:
             subject_hash = self.get_cert_hash(mitm_cert_path)
@@ -805,26 +804,25 @@ class BypassManager:
         cert_filename = f"{subject_hash}.0"
         system_cacerts_path = f"/system/etc/security/cacerts/{cert_filename}"
         
-        self.log(f"mitmproxy sertifikası ({cert_filename}) sistemden kaldırılıyor...", "process")
+        self.log(f"mitmproxy sertifikası ({cert_filename}) kaldırılıyor...", "process")
         
-        # 1. Remount system as RW
+        # 1. Try unmounting bind mount first
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'umount /system/etc/security/cacerts\'"', shell=True, capture_output=True)
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'rm -rf /dev/tmp/cacerts\'"', shell=True, capture_output=True)
+        
+        # 2. Also try direct deletion in case it was written directly
         subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o rw,remount /system\'"', shell=True, capture_output=True)
         subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o rw,remount /\'"', shell=True, capture_output=True)
-        
-        # 2. Delete the certificate file
-        rm_cmd = f"rm {system_cacerts_path}"
-        subprocess.run(f'"{self.adb_path}" shell "su -c \'{rm_cmd}\'"', shell=True, capture_output=True)
-        
-        # 3. Remount system back to RO
+        subprocess.run(f'"{self.adb_path}" shell "su -c \'rm -f {system_cacerts_path}\'"', shell=True, capture_output=True)
         subprocess.run(f'"{self.adb_path}" shell "su -c \'mount -o ro,remount /system\'"', shell=True, capture_output=True)
         
-        # 4. Check if successfully removed
+        # 3. Check if successfully removed
         check_res = subprocess.run(f'"{self.adb_path}" shell "ls {system_cacerts_path}"', shell=True, capture_output=True, text=True)
         if cert_filename not in check_res.stdout:
-            self.log("mitmproxy CA sertifikası sistemden başarıyla kaldırıldı.", "success")
+            self.log("mitmproxy CA sertifikası başarıyla kaldırıldı.", "success")
             return True, "Sertifika kaldırıldı."
         else:
-            self.log("Sertifika kaldırılamadı! Sistem dizini korumalı olabilir.", "error")
+            self.log("Sertifika kaldırılamadı! Sistem dizini korumalı veya mount çözülemedi.", "error")
             return False, "Sertifika silinemedi!"
 
 manager = BypassManager()
