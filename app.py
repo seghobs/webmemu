@@ -324,7 +324,7 @@ class BypassManager:
             self.log("Frida server durduruldu", "success")
         threading.Thread(target=task, daemon=True).start()
 
-    def start_bypass(self, app_package, script_name, start_on_profile=False, instagram_username=""):
+    def start_bypass(self, app_package, script_name, start_on_profile=False, instagram_username="", bypass_mode="spawn"):
         if not self.device_connected:
             self.check_devices()
         if not self.device_connected:
@@ -341,10 +341,17 @@ class BypassManager:
             self.log(f"Script bulunamadı: {script_name}", "error")
             return False
             
-        self.log(f"Bypass başlatılıyor: {app_package}", "process")
+        self.log(f"Bypass başlatılıyor: {app_package} (Mod: {bypass_mode})", "process")
         self.bypass_running = True
         
         def task():
+            if bypass_mode == "attach":
+                self.log(f"Uygulama başlatılıyor (Attach modu): {app_package}", "process")
+                # Force start app via launcher activity
+                self.run_adb_cmd(f"shell monkey -p {app_package} -c android.intent.category.LAUNCHER 1")
+                # Wait for process initialization
+                time.sleep(2.5)
+
             if app_package == "com.instagram.android" and start_on_profile:
                 target_uri = f"instagram://user?username={instagram_username}" if instagram_username else "instagram://profile"
                 def launch_profile():
@@ -371,7 +378,11 @@ class BypassManager:
                             return b.decode('utf-8', errors='ignore')
 
             try:
-                cmd = f'frida -U -l "{script_path}" -f {app_package}'
+                if bypass_mode == "attach":
+                    cmd = f'frida -U -l "{script_path}" -N {app_package}'
+                else:
+                    cmd = f'frida -U -l "{script_path}" -f {app_package}'
+                    
                 self.bypass_process = subprocess.Popen(
                     cmd, shell=True, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT
@@ -965,8 +976,9 @@ def start_bypass():
     script_name = data.get("script_name", "nev1.js")
     start_on_profile = data.get("start_on_profile", False)
     instagram_username = data.get("instagram_username", "")
+    bypass_mode = data.get("bypass_mode", "spawn")
     
-    success = manager.start_bypass(app_package, script_name, start_on_profile, instagram_username)
+    success = manager.start_bypass(app_package, script_name, start_on_profile, instagram_username, bypass_mode)
     return jsonify({"success": success, "status": "running" if success else "failed"})
 
 @app.route('/api/stop_bypass', methods=['POST'])
