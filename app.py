@@ -140,8 +140,16 @@ class BypassManager:
     def start_mitmweb(self):
         self.log("Mitmweb yeni bir CMD penceresinde başlatılıyor...", "process")
         try:
-            subprocess.Popen("start cmd.exe /k \"mitmweb\"", shell=True)
+            subprocess.Popen("start cmd.exe /k \"mitmweb --set web_token=123456\"", shell=True)
             self.log("Mitmweb başarıyla başlatıldı!", "success")
+            
+            def open_browser():
+                import webbrowser
+                time.sleep(2.0)
+                webbrowser.open("http://127.0.0.1:8081/?token=123456")
+                self.log("Mitmweb arayüzü tarayıcıda otomatik olarak açıldı.", "success")
+                
+            threading.Thread(target=open_browser, daemon=True).start()
             return True, "Mitmweb başlatıldı!"
         except Exception as e:
             self.log(f"Mitmweb başlatılamadı: {e}", "error")
