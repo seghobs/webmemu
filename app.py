@@ -700,15 +700,15 @@ class BypassManager:
 
     def check_cert_status(self):
         if not self.device_connected:
-            return "Cihaz Yok", False
+            return "no_device", False
             
         mitm_cert_path = os.path.expanduser(r"~\.mitmproxy\mitmproxy-ca-cert.pem")
         if not os.path.exists(mitm_cert_path):
-            return "Yerel Sertifika Yok", False
+            return "no_local_cert", False
             
         subject_hash = self.get_cert_hash(mitm_cert_path)
         if not subject_hash:
-            return "Hash Alınamadı", False
+            return "hash_failed", False
             
         cert_filename = f"{subject_hash}.0"
         result = subprocess.run(
@@ -716,9 +716,9 @@ class BypassManager:
             shell=True, capture_output=True, text=True
         )
         if cert_filename in result.stdout:
-            return "Kurulu", True
+            return "installed", True
         else:
-            return "Kurulu Değil", False
+            return "not_installed", False
 
     def install_mitm_cert(self):
         if not self.device_connected:
@@ -854,6 +854,18 @@ def install_cert():
 def remove_cert():
     success, msg = manager.remove_mitm_cert()
     return jsonify({"success": success, "message": msg})
+
+@app.route('/api/log_frontend_error', methods=['POST'])
+def log_frontend_error():
+    data = request.json or {}
+    msg = data.get("message")
+    line = data.get("lineno")
+    err = data.get("error")
+    manager.log(f"FRONTEND HATA: {msg} (Satır: {line})", "error")
+    if err:
+        for l in err.split('\n'):
+            manager.log(f"  {l}", "error")
+    return jsonify({"success": True})
 
 @app.route('/api/check_devices', methods=['POST'])
 def check_devices():

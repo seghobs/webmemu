@@ -951,6 +951,21 @@
     </div>
 
     <script>
+        // Global Frontend Error Logging
+        window.onerror = function(message, source, lineno, colno, error) {
+            fetch('/api/log_frontend_error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    source: source,
+                    lineno: lineno,
+                    colno: colno,
+                    error: error ? error.stack : ''
+                })
+            });
+        };
+
         // Custom Dropdown JS Manager Class
         class CustomSelect {
             constructor(elementId, onChangeCallback) {
@@ -1172,18 +1187,22 @@
                 }
 
                 // Cert status
+                const certMap = {
+                    "installed": { text: "Kurulu", dot: "status-dot active" },
+                    "not_installed": { text: "Kurulu Değil", dot: "status-dot inactive" },
+                    "no_device": { text: "Cihaz Yok", dot: "status-dot warning" },
+                    "no_local_cert": { text: "Yerel Sertifika Yok", dot: "status-dot warning" },
+                    "hash_failed": { text: "Hash Alınamadı", dot: "status-dot warning" }
+                };
+
+                const certInfo = certMap[status.cert_status] || { text: status.cert_status || "Bilinmiyor", dot: "status-dot warning" };
+                dotCert.className = certInfo.dot;
+                valCert.textContent = certInfo.text;
+
                 if (status.cert_installed) {
-                    dotCert.className = 'status-dot active';
-                    valCert.textContent = status.cert_status;
                     btnCertInstall.style.display = 'none';
                     btnCertRemove.style.display = 'block';
                 } else {
-                    if (status.cert_status === "Kurulu Değil") {
-                        dotCert.className = 'status-dot inactive';
-                    } else {
-                        dotCert.className = 'status-dot warning';
-                    }
-                    valCert.textContent = status.cert_status;
                     btnCertInstall.style.display = 'block';
                     btnCertRemove.style.display = 'none';
                 }
@@ -1633,11 +1652,11 @@
             loadRunningPackagesList();
             setupLogStream();
             
-            // Poll status every 4 seconds
+            // Poll status every 1.5 seconds (near real-time)
             setInterval(() => {
                 updateStatus();
                 loadRunningPackagesList();
-            }, 4000);
+            }, 1500);
         });
     </script>
 </body>
