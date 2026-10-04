@@ -44,7 +44,7 @@ Java.perform(function () {
         };
 
     } catch (e) {
-        console.log("[-] OkHttp3 kütüphanesi bu sürümde bulunamadı veya farklı paket adında.");
+        console.log("[*] OkHttp3 kütüphanesi bu sürümde bulunamadı (Atlandı).");
     }
 
     try {

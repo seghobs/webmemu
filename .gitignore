@@ -10,3 +10,13 @@ frida-server*
 yedek/
 *.log
 temp*.txt
+
+# Official ADB runtime installed by tools/install_adb.ps1
+tools/platform-tools/
+tools/platform-tools-latest-windows.zip
+
+# Local device captures, downloaded APKs and generated test output
+artifacts/
+.venv/
+.env
+.env.*

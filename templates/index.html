@@ -4,765 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Instagram & Facebook SSL Pinning Bypass Web Manager. Advanced Frida based developer dashboard.">
-    <title>SSL Pinning Bypass Manager - Advanced Developer Studio</title>
-    <!-- Google Fonts Inter & JetBrains Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg-dark: #07070a;
-            --bg-card: rgba(16, 16, 24, 0.7);
-            --bg-card-hover: rgba(22, 22, 33, 0.85);
-            --accent: #6366f1;
-            --accent-hover: #818cf8;
-            --accent-glow: rgba(99, 102, 241, 0.4);
-            --success: #10b981;
-            --success-glow: rgba(16, 185, 129, 0.3);
-            --error: #ef4444;
-            --error-glow: rgba(239, 68, 68, 0.3);
-            --warning: #f59e0b;
-            --text: #f4f4f5;
-            --text-dim: #94949e;
-            --border: rgba(255, 255, 255, 0.08);
-            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            background-image: radial-gradient(circle at 5% 10%, rgba(99, 102, 241, 0.06) 0%, transparent 40%),
-                              radial-gradient(circle at 95% 90%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
-        }
-
-        /* Glassmorphism Workspace Container */
-        .app-container {
-            width: 98%;
-            max-width: 1600px;
-            height: 95vh;
-            background: var(--bg-card);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            display: flex;
-            overflow: hidden;
-            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
-        }
-
-        /* Sidebar Styling */
-        .sidebar {
-            width: 280px;
-            background: rgba(8, 8, 12, 0.6);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            padding: 30px 20px;
-            flex-shrink: 0;
-            overflow-y: auto;
-        }
-
-        .logo-section {
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            font-size: 32px;
-            filter: drop-shadow(0 0 10px var(--accent-glow));
-        }
-
-        .logo-details {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .logo-title {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            background: linear-gradient(to right, #ffffff, #d4d4d8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .logo-subtitle {
-            font-size: 11px;
-            color: var(--text-dim);
-        }
-
-        /* Status Cards */
-        .status-panel {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .panel-title {
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-dim);
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .status-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 12px;
-        }
-
-        .status-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 8px;
-            background: var(--text-dim);
-            transition: var(--transition);
-        }
-
-        .status-dot.active {
-            background: var(--success);
-            box-shadow: 0 0 8px var(--success);
-        }
-
-        .status-dot.inactive {
-            background: var(--error);
-            box-shadow: 0 0 8px var(--error);
-        }
-
-        .status-dot.warning {
-            background: var(--warning);
-            box-shadow: 0 0 8px var(--warning);
-        }
-
-        .status-label {
-            color: var(--text-dim);
-            flex-grow: 1;
-        }
-
-        .status-value {
-            font-weight: 600;
-        }
-
-        /* Proxy Controller Panel */
-        .proxy-panel {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .proxy-inputs {
-            display: grid;
-            grid-template-columns: 3fr 2fr;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .proxy-field {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 6px 8px;
-            color: var(--text);
-            font-size: 11px;
-            font-family: inherit;
-            width: 100%;
-            min-width: 0;
-        }
-
-        .proxy-field:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .proxy-btn-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        /* Controls */
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .btn {
-            font-family: inherit;
-            font-size: 12px;
-            font-weight: 600;
-            color: #ffffff;
-            background: var(--accent);
-            border: none;
-            border-radius: 10px;
-            padding: 12px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: var(--transition);
-        }
-
-        .btn:hover {
-            background: var(--accent-hover);
-            box-shadow: 0 0 12px var(--accent-glow);
-        }
-
-        .btn-secondary {
-            background: var(--accent);
-            border: none;
-            color: #ffffff;
-        }
-
-        .btn-secondary:hover {
-            background: var(--accent-hover);
-            box-shadow: 0 0 12px var(--accent-glow);
-        }
-
-        .btn-success {
-            background: var(--accent);
-            padding: 14px 16px;
-            font-size: 13px;
-        }
-
-        .btn-success:hover {
-            background: var(--accent-hover);
-            box-shadow: 0 0 12px var(--accent-glow);
-        }
-
-        .btn-error {
-            background: var(--accent);
-        }
-
-        .btn-error:hover {
-            background: var(--accent-hover);
-            box-shadow: 0 0 12px var(--accent-glow);
-        }
-
-        .btn-mini {
-            padding: 6px 10px;
-            font-size: 11px;
-            border-radius: 6px;
-        }
-
-        .sidebar-footer {
-            margin-top: auto;
-            font-size: 10px;
-            color: var(--text-dim);
-            text-align: center;
-            padding-top: 15px;
-        }
-
-        /* Main Content Section */
-        .main-content {
-            flex-grow: 1;
-            padding: 25px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            overflow: hidden; /* Prevent body scroll */
-        }
-
-        /* Top Config Row */
-        .top-config-row {
-            background: rgba(255, 255, 255, 0.01);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .form-group label {
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-dim);
-        }
-
-        /* Custom Dropdown / Select Styles */
-        .custom-select {
-            position: relative;
-            width: 100%;
-        }
-
-        .custom-select-trigger {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px 16px;
-            color: var(--text);
-            font-family: inherit;
-            font-size: 13px;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .custom-select-trigger:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 8px rgba(99, 102, 241, 0.15);
-        }
-
-        .custom-select-trigger-arrow {
-            font-size: 10px;
-            color: var(--text-dim);
-            transition: var(--transition);
-        }
-
-        .custom-select-dropdown {
-            position: absolute;
-            top: 110%;
-            left: 0;
-            width: 100%;
-            background: rgba(9, 9, 14, 0.95);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.85);
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            max-height: 280px;
-            overflow: hidden;
-            opacity: 0;
-            transform: translateY(-8px) scale(0.96);
-            transition: opacity 0.15s ease, transform 0.15s ease;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-
-        .custom-select-dropdown.open {
-            display: flex;
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-
-        .custom-select-search-container {
-            padding: 10px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.01);
-        }
-
-        .custom-select-search-input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 8px 12px;
-            color: var(--text);
-            font-size: 12px;
-            font-family: inherit;
-            outline: none;
-        }
-
-        .custom-select-search-input:focus {
-            border-color: var(--accent);
-        }
-
-        .custom-select-options {
-            overflow-y: auto;
-            max-height: 200px;
-        }
-
-        .custom-select-option {
-            padding: 10px 16px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .custom-select-option:hover {
-            background: rgba(99, 102, 241, 0.15);
-            color: #ffffff;
-        }
-
-        .custom-select-option.selected {
-            background: rgba(99, 102, 241, 0.25);
-            color: #ffffff;
-            font-weight: 500;
-            border-left: 3px solid var(--accent);
-        }
-
-        .option-title {
-            font-weight: 500;
-        }
-
-        .option-subtitle {
-            font-size: 10px;
-            color: var(--text-dim);
-            margin-top: 3px;
-        }
-
-        .custom-select-no-options {
-            padding: 15px;
-            font-size: 12px;
-            color: var(--text-dim);
-            text-align: center;
-        }
-
-        /* Custom Checkbox Design */
-        .custom-checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-dim);
-            gap: 8px;
-            transition: var(--transition);
-        }
-
-        .custom-checkbox-wrapper:hover {
-            color: var(--text);
-        }
-
-        .custom-checkbox-wrapper input {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-            height: 0;
-            width: 0;
-        }
-
-        .custom-checkbox-box {
-            width: 18px;
-            height: 18px;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            display: inline-block;
-            position: relative;
-            transition: var(--transition);
-        }
-
-        .custom-checkbox-wrapper input:checked ~ .custom-checkbox-box {
-            background: var(--accent);
-            border-color: var(--accent);
-            box-shadow: 0 0 10px var(--accent-glow);
-            animation: spring-bounce 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .custom-checkbox-box::after {
-            content: "";
-            position: absolute;
-            display: none;
-            left: 5px;
-            top: 2px;
-            width: 5px;
-            height: 9px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
-        }
-
-        .custom-checkbox-wrapper input:checked ~ .custom-checkbox-box::after {
-            display: block;
-        }
-
-        @keyframes spring-bounce {
-            0% { transform: scale(0.8); }
-            50% { transform: scale(1.18); }
-            100% { transform: scale(1); }
-        }
-
-        /* Split Workspace */
-        .workspace-split {
-            display: flex;
-            gap: 12px;
-            flex-grow: 1;
-            min-height: 0; /* Important for flex child overflow */
-            width: 100%;
-        }
-
-        .editor-pane {
-            flex: 1.1;
-            min-width: 250px;
-        }
-
-        .console-pane {
-            flex: 0.9;
-            min-width: 350px;
-        }
-
-        /* Resizer Bars */
-        .resizer-bar {
-            width: 6px;
-            background: transparent;
-            cursor: col-resize;
-            z-index: 100;
-            transition: background 0.2s, box-shadow 0.2s;
-            border-radius: 3px;
-            align-self: stretch;
-            flex-shrink: 0;
-        }
-        .resizer-bar:hover, .resizer-bar.dragging {
-            background: var(--accent) !important;
-            box-shadow: 0 0 10px var(--accent-glow);
-        }
-
-        /* FontAwesome styling */
-        i {
-            color: var(--accent) !important;
-            margin-right: 6px;
-            font-size: 13px;
-            transition: var(--transition);
-            display: inline-block;
-        }
-        .btn i {
-            color: inherit !important;
-        }
-        .custom-select-trigger-arrow i {
-            color: var(--text-dim) !important;
-            margin-right: 0;
-            font-size: 10px;
-        }
-
-        .section-card {
-            background: rgba(255, 255, 255, 0.015);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
-
-        .section-header h2 {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-dim);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Script Editor Area */
-        .editor-container {
-            flex-grow: 1;
-            position: relative;
-            min-height: 0;
-        }
-
-        .script-textarea {
-            width: 100%;
-            height: 100%;
-            background: #030305;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
-            color: #d4d4d8;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            line-height: 1.6;
-            resize: none;
-            outline: none;
-            transition: var(--transition);
-        }
-
-        .script-textarea:focus {
-            border-color: var(--accent);
-        }
-
-        .editor-footer {
-            margin-top: 10px;
-            display: flex;
-            justify-content: flex-end;
-            flex-shrink: 0;
-        }
-
-        /* Console Terminal & ADB Input */
-        .console-container {
-            flex-grow: 1;
-            background: #030305;
-            border: 1px solid var(--border);
-            border-radius: 10px 10px 0 0;
-            padding: 16px;
-            overflow-y: auto;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            line-height: 1.6;
-            color: #e4e4e7;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .log-entry {
-            white-space: pre-wrap;
-            word-break: break-all;
-            padding: 1px 0;
-        }
-
-        /* Log Entry Color Coding */
-        .log-success { color: #10b981; }
-        .log-error { color: #ef4444; }
-        .log-warning { color: #f59e0b; }
-        .log-process { color: #60a5fa; }
-        .log-terminal { color: #818cf8; font-weight: 600; }
-        .log-info { color: #d4d4d8; }
-
-        /* ADB shell panel */
-        .adb-shell-bar {
-            background: #08080c;
-            border: 1px solid var(--border);
-            border-top: none;
-            border-radius: 0 0 10px 10px;
-            padding: 8px 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-
-        .adb-prompt {
-            color: var(--accent);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            font-weight: 700;
-            user-select: none;
-        }
-
-        .adb-input {
-            flex-grow: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #ffffff;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            width: 100%;
-        }
-
-        /* Scrollbar styles */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-    </style>
+    <title>WebMEmu · Ağ Analiz Stüdyosu</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='studio.css') }}">
 </head>
 <body>
+    <a class="skip-link" href="#workspace">Çalışma alanına geç</a>
 
     <div class="app-container">
-        
+
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo-section">
                 <span class="logo-icon"><i class="fa-solid fa-shield-halved" style="font-size: 22px; margin-right: 0;"></i></span>
                 <div class="logo-details">
-                    <h1 class="logo-title" id="main-heading">SSL Bypass</h1>
-                    <span class="logo-subtitle">Frida Developer Studio</span>
+                    <h1 class="logo-title" id="main-heading">WebMEmu</h1>
+                    <span class="logo-subtitle">AĞ ANALİZ STÜDYOSU</span>
                 </div>
             </div>
 
             <!-- Sistem Durumu -->
-            <div class="status-panel">
-                <div class="panel-title">Sistem Durumu</div>
-                
-                <div class="status-row">
-                    <div class="status-dot" id="dot-device"></div>
-                    <span class="status-label">Cihaz</span>
-                    <span class="status-value" id="val-device">Kontrol ediliyor...</span>
-                </div>
-                
-                <div class="status-row">
-                    <div class="status-dot" id="dot-frida"></div>
-                    <span class="status-label">Frida Server</span>
-                    <span class="status-value" id="val-frida">Bilinmiyor</span>
-                </div>
-
-                <div class="status-row">
-                    <div class="status-dot" id="dot-proxy"></div>
-                    <span class="status-label">Global Proxy</span>
-                    <span class="status-value" id="val-proxy">Kontrol ediliyor...</span>
-                </div>
-
-                <div class="status-row">
-                    <div class="status-dot" id="dot-cert"></div>
-                    <span class="status-label">Mitmproxy Cert</span>
-                    <span class="status-value" id="val-cert">Kontrol ediliyor...</span>
-                </div>
-            </div>
-
             <!-- Proxy Ayarları -->
             <div class="proxy-panel">
                 <div class="panel-title">Android Proxy Kontrolü</div>
                 <div class="proxy-inputs">
-                    <input type="text" class="proxy-field" id="proxy-ip" value="192.168.31.61" placeholder="IP Adresi">
-                    <input type="text" class="proxy-field" id="proxy-port" value="8080" placeholder="Port">
+                    <input type="text" class="proxy-field" id="proxy-ip" aria-label="Proxy IP adresi" value="127.0.0.1" placeholder="IP Adresi">
+                    <input type="text" class="proxy-field" id="proxy-port" aria-label="Proxy portu" value="8080" placeholder="Port">
                 </div>
                 <div class="proxy-btn-row">
                     <button class="btn btn-secondary btn-mini" id="btn-proxy-on">Aç</button>
                     <button class="btn btn-secondary btn-mini" id="btn-proxy-off">Kapat</button>
                 </div>
                 <button class="btn btn-secondary btn-mini" id="btn-start-mitmweb" style="width: 100%; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent); color: white;">
-                    <i class="fa-solid fa-network-wired" style="margin-right: 0; color: white !important;"></i> Mitmweb Başlat
+                    <i class="fa-solid fa-network-wired" style="margin-right: 0; "></i> Mitmweb Başlat
                 </button>
             </div>
 
@@ -774,10 +47,10 @@
                 </div>
                 <div id="cert-action-container" style="display: flex; flex-direction: column; gap: 8px;">
                     <button class="btn btn-secondary btn-mini" id="btn-cert-install" style="background: var(--accent); color: white;">
-                        <i class="fa-solid fa-download" style="margin-right: 4px; color: white !important;"></i> Sertifikayı Yükle
+                        <i class="fa-solid fa-download" style="margin-right: 4px; "></i> Sertifikayı Yükle
                     </button>
                     <button class="btn btn-secondary btn-mini" id="btn-cert-remove" style="background: var(--accent); color: white;">
-                        <i class="fa-solid fa-trash" style="margin-right: 4px; color: white !important;"></i> Sertifikayı Kaldır
+                        <i class="fa-solid fa-trash" style="margin-right: 4px; "></i> Sertifikayı Kaldır
                     </button>
                 </div>
             </div>
@@ -785,28 +58,35 @@
             <!-- Kontroller -->
             <div class="control-group">
                 <div class="panel-title">Server Kontrolleri</div>
+                <!-- Gizlilik Modu (Stealth) -->
+                <div style="margin-bottom: 6px;">
+                    <label class="custom-checkbox-wrapper" style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; padding: 8px 10px;">
+                        <input type="checkbox" id="check-stealth-mode">
+                        <span class="custom-checkbox-box"></span>
+                        <div style="display: flex; flex-direction: column; margin-left: 2px;">
+                            <span class="custom-checkbox-label" style="color: #d8b4fe; font-weight: 600; font-size: 11px;">
+                                <i class="fa-solid fa-user-ninja" style="margin-right: 4px;"></i> Gizlilik Modu (Stealth)
+                            </span>
+                            <span style="font-size: 9px; color: var(--text-dim);">Binary: sys_agent | Port: 13337</span>
+                        </div>
+                    </label>
+                </div>
                 <button class="btn" id="btn-start-frida">
                     <i class="fa-solid fa-play"></i> Frida Server Başlat
                 </button>
                 <button class="btn btn-secondary" id="btn-stop-frida">
                     <i class="fa-solid fa-stop"></i> Frida Server Durdur
                 </button>
-                
-                <div style="margin-top: 10px;" class="panel-title">Bypass Kontrolleri</div>
-                <button class="btn btn-success" id="btn-start-bypass">
-                    <i class="fa-solid fa-rocket"></i> BYPASS BAŞLAT
-                </button>
-                <button class="btn btn-secondary" id="btn-inject-script" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <i class="fa-solid fa-syringe"></i> Ekstra Script Enjekte Et
-                </button>
-                <button class="btn btn-error" id="btn-stop-bypass" style="margin-top: 8px;">
-                    <i class="fa-solid fa-circle-stop"></i> Bypass Durdur
-                </button>
+
+
+
+
+
 
                 <button style="margin-top: 15px;" class="btn btn-secondary" id="btn-refresh">
                     <i class="fa-solid fa-arrows-rotate"></i> Durumu Yenile
                 </button>
-                
+
                 <div style="margin-top: 15px;" class="panel-title">MEmu Araçları</div>
                 <button class="btn" id="btn-start-memu" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px; background: var(--accent);">
                     <i class="fa-solid fa-desktop" style="margin-right: 0;"></i> MEmu Player Başlat
@@ -814,6 +94,10 @@
                 <button class="btn btn-secondary" id="btn-clean-ads" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <i class="fa-solid fa-ban" style="margin-right: 0;"></i> MEmu Reklamlarını Temizle
                 </button>
+                <button class="btn btn-secondary" id="btn-upload-apk" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px;">
+                    <i class="fa-solid fa-file-arrow-up" style="margin-right: 0;"></i> APK / XAPK Yükle
+                </button>
+                <input type="file" id="apk-file-input" accept=".apk,.xapk,.apks" style="display: none;">
             </div>
 
             <footer class="sidebar-footer">
@@ -822,16 +106,52 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content">
-            
+        <main class="main-content" id="workspace">
+            <header class="page-header">
+                <div><div class="eyebrow">ÇALIŞMA ALANI <span>/</span> GENEL BAKIŞ</div>
+                <h2>Ağ analiz stüdyosu<span class="title-dot">.</span></h2>
+                <p>Cihazını bağla, oturumunu yapılandır ve trafiği incele.</p></div>
+                <span class="session-pill" id="session-status" role="status">Oturum bekleniyor</span>
+            </header>
+            <div class="status-panel" aria-label="Sistem durumu">
+
+
+                <div class="status-row">
+                    <div class="status-dot" id="dot-device"></div>
+                    <span class="status-label">Cihaz</span><span class="status-caption">ADB bağlantısı</span>
+                    <span class="status-value" id="val-device">Kontrol ediliyor...</span>
+                </div>
+
+                <div class="status-row">
+                    <div class="status-dot" id="dot-frida"></div>
+                    <span class="status-label">Frida Server</span><span class="status-caption">Enstrümantasyon servisi</span>
+                    <span class="status-value" id="val-frida">Bilinmiyor</span>
+                </div>
+
+                <div class="status-row">
+                    <div class="status-dot" id="dot-proxy"></div>
+                    <span class="status-label">Global Proxy</span><span class="status-caption">Trafik yönlendirme</span>
+                    <span class="status-value" id="val-proxy">Kontrol ediliyor...</span>
+                </div>
+
+                <div class="status-row">
+                    <div class="status-dot" id="dot-cert"></div>
+                    <span class="status-label">Mitmproxy Cert</span><span class="status-caption" title="Sertifika adı: mitmproxy · Dosya: c8750f0d.0">mitmproxy · c8750f0d.0</span>
+                    <span class="status-value" id="val-cert">Kontrol ediliyor...</span>
+                </div>
+            </div>
+
+
+
             <!-- Config Card -->
-            <section class="top-config-row">
+            <section class="top-config-row" aria-labelledby="config-title">
+                <div class="config-heading"><div><span class="step-label">01</span><h2 id="config-title">Oturum ayarları</h2></div><span class="muted">Uygulama & script seçimi</span></div>
                 <!-- Dropdown Fields Grid -->
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; width: 100%;">
+                <div class="config-grid">
                     <div class="form-group">
-                        <label>Hedef Uygulama Paket Adı</label>
+                        <label id="app-label">Hedef uygulama</label>
                         <!-- Custom Select App -->
-                        <div class="custom-select" id="dropdown-app">
+                        <div class="custom-select" id="dropdown-app" aria-labelledby="app-label">
                             <button class="custom-select-trigger" type="button">
                                 <span class="custom-select-trigger-text">Paketler Yükleniyor...</span>
                                 <span class="custom-select-trigger-arrow"><i class="fa-solid fa-chevron-down"></i></span>
@@ -847,9 +167,9 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Aktif Bypass Scripti</label>
+                        <label id="script-label">Aktif script</label>
                         <!-- Custom Select Script -->
-                        <div class="custom-select" id="dropdown-script">
+                        <div class="custom-select" id="dropdown-script" aria-labelledby="script-label">
                             <button class="custom-select-trigger" type="button">
                                 <span class="custom-select-trigger-text">Scriptler Yükleniyor...</span>
                                 <span class="custom-select-trigger-arrow"><i class="fa-solid fa-chevron-down"></i></span>
@@ -867,7 +187,7 @@
                 </div>
 
                 <!-- Checkboxes Row -->
-                <div style="display: flex; gap: 25px; border-top: 1px solid var(--border); padding-top: 14px; width: 100%; align-items: center; justify-content: flex-start;">
+                <details class="advanced-options"><summary>Gelişmiş ayarlar <span>Başlatma modu, profil ve gizleme</span></summary><div class="options-grid">
                     <!-- Checkbox 1: 3rd Party Filter -->
                     <label class="custom-checkbox-wrapper">
                         <input type="checkbox" id="check-third-party" checked>
@@ -888,30 +208,72 @@
                         <span class="custom-checkbox-box"></span>
                         <span class="custom-checkbox-label">Profil Sekmesinden Başlat</span>
                     </label>
-                    <input type="text" id="input-profile-username" class="proxy-field" placeholder="Kullanıcı Adı" style="width: 130px; display: inline-block; margin-left: -15px;">
-                    
+                    <input type="text" id="input-profile-username" aria-label="Profil kullanıcı adı" class="proxy-field" placeholder="Kullanıcı Adı" style="width: 130px; display: inline-block; margin-left: -15px;">
+
+                    <!-- Checkbox 4: Deep Device & Root Cloak (Samsung S25 Ultra) -->
+                    <label class="custom-checkbox-wrapper" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 6px; padding: 4px 10px;">
+                        <input type="checkbox" id="check-deep-cloak" checked>
+                        <span class="custom-checkbox-box"></span>
+                        <span class="custom-checkbox-label" style="color: #93c5fd; font-weight: 600; font-size: 11px;">
+                            <i class="fa-solid fa-mobile-screen-button" style="margin-right: 4px; "></i> Root & MEmu Gizle (Samsung S25 Ultra)
+                        </span>
+                    </label>
+
                     <!-- Bypass Modu Select -->
                     <div style="display: flex; align-items: center; gap: 8px; margin-left: 10px;">
                         <span style="font-size: 11px; font-weight: 500; color: var(--text-dim);">Başlatma Modu:</span>
-                        <select id="select-bypass-mode" style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); color: white; border-radius: 4px; padding: 3px 8px; font-size: 11px; outline: none; cursor: pointer;">
+                        <select id="select-bypass-mode" aria-label="Başlatma modu" style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); color: white; border-radius: 4px; padding: 3px 8px; font-size: 11px; outline: none; cursor: pointer;">
                             <option value="spawn" selected>Spawn (Yeni Başlat)</option>
                             <option value="attach">Attach (Çalışana Bağlan)</option>
                         </select>
                     </div>
                 </div>
+
+                </details>
+
+                <!-- Quick Actions Toolbar -->
+                <div style="display: flex; gap: 10px; border-top: 1px solid var(--border); padding-top: 12px; width: 100%; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 11px; font-weight: 700; color: #c084fc; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px;">
+                            <i class="fa-solid fa-bolt"></i> Araçlar
+                        </span>
+                        <button class="btn btn-secondary btn-mini" id="btn-quick-clear" title="Seçili uygulamanın verilerini ve önbelleğini sıfırlar">
+                            <i class="fa-solid fa-broom"></i> Verileri Sıfırla
+                        </button>
+                        <button class="btn btn-secondary btn-mini" id="btn-quick-restart" title="Uygulamayı tamamen kapatıp yeniden başlatır">
+                            <i class="fa-solid fa-rotate"></i> Yeniden Başlat
+                        </button>
+                        <button class="btn btn-secondary btn-mini" id="btn-quick-grant" title="Uygulamanın tüm izinlerini otomatik onaylar">
+                            <i class="fa-solid fa-key"></i> Tüm İzinleri Ver
+                        </button>
+                    </div>
+                    <div>
+                        <button class="btn btn-mini" id="btn-open-logcat" style="background: rgba(168, 85, 247, 0.2); border: 1px solid #a855f7; color: #d8b4fe;">
+                            <i class="fa-solid fa-list-check" style="margin-right: 4px; "></i> Canlı Logcat İzleyici
+                        </button>
+                    </div>
+                </div>
             </section>
+
+            <div class="session-actions"><div class="action-hint"><span class="step-label">02</span><span>Analiz oturumu</span></div><div class="action-buttons">                <button class="btn btn-success" id="btn-start-bypass">
+                    <i class="fa-solid fa-rocket"></i> Oturumu başlat
+                </button>                <button class="btn btn-secondary" id="btn-inject-script">
+                    <i class="fa-solid fa-syringe"></i> Script enjekte et
+                </button>                <button class="btn btn-error" id="btn-stop-bypass">
+                    <i class="fa-solid fa-circle-stop"></i> Durdur
+                </button></div></div>
 
             <!-- Workspace Split (Editor and Console) -->
             <div class="workspace-split">
-                
+
                 <!-- Script Editörü -->
                 <section class="section-card editor-pane" id="editor-pane">
                     <div class="section-header">
-                        <h2><i class="fa-solid fa-code"></i> Script Düzenleyici</h2>
-                        <span id="editor-filename" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent);">dosya.js</span>
+                        <h2><i class="fa-solid fa-code"></i> Script editörü</h2>
+                        <span id="editor-save-status" class="save-status" role="status">Kaydedildi</span><span id="editor-filename" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent);">dosya.js</span>
                     </div>
                     <div class="editor-container">
-                        <textarea class="script-textarea" id="script-editor" spellcheck="false" placeholder="JavaScript dosyası yükleniyor..."></textarea>
+                        <textarea class="script-textarea" id="script-editor" aria-label="JavaScript düzenleyici" spellcheck="false" placeholder="JavaScript dosyası yükleniyor..."></textarea>
                     </div>
                     <div class="editor-footer">
                         <button class="btn" id="btn-save-script"><i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet</button>
@@ -924,25 +286,25 @@
                 <!-- Console Output & ADB command tool -->
                 <section class="section-card console-pane" id="console-pane" style="display: flex; flex-direction: column;">
                     <div class="section-header">
-                        <h2><i class="fa-solid fa-terminal"></i> Log Konsolu & ADB Terminali</h2>
+                        <h2><i class="fa-solid fa-terminal"></i> Canlı konsol</h2>
                         <button class="btn btn-secondary btn-mini" id="btn-clear-console"><i class="fa-solid fa-trash-can"></i> Temizle</button>
                     </div>
-                    
-                    <div style="display: flex; gap: 12px; flex-grow: 1; min-height: 0; width: 100%;">
+
+                    <div class="console-layout">
                         <!-- Left side: Logs Stream and Terminal Input -->
                         <div id="console-left-pane" style="display: flex; flex-direction: column; min-height: 0; gap: 10px; flex: 2.2;">
                             <div class="console-container" id="console-output" style="flex-grow: 1; min-height: 0; margin-bottom: 0;">
                                 <div class="log-entry log-info">⚪ [Sistem] Konsol hazır. Anlık loglar ve adb çıktıları burada belirecektir.</div>
                             </div>
                             <div class="adb-shell-bar" style="margin-top: auto;">
-                                <span class="adb-prompt">adb shell $</span>
-                                <input type="text" class="adb-input" id="adb-cmd-input" placeholder="ADB komutu yazıp Enter tuşuna basın..." autocomplete="off">
+                                <span class="adb-prompt">adb ›</span>
+                                <input type="text" class="adb-input" id="adb-cmd-input" aria-label="ADB komutu" placeholder="ADB komutu yazıp Enter tuşuna basın..." autocomplete="off">
                             </div>
                         </div>
-                        
+
                         <!-- Console Inner Resizer -->
                         <div class="resizer-bar" id="console-resizer" style="margin: 0 -3px; width: 6px;"></div>
-                        
+
                         <!-- Right side: Running Applications Manager -->
                         <div id="console-right-pane" style="display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; min-height: 0; flex: 1;">
                             <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
@@ -962,737 +324,69 @@
 
     </div>
 
-    <script>
-        // Global Frontend Error Logging
-        window.onerror = function(message, source, lineno, colno, error) {
-            fetch('/api/log_frontend_error', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: message,
-                    source: source,
-                    lineno: lineno,
-                    colno: colno,
-                    error: error ? error.stack : ''
-                })
-            });
-        };
+    <!-- Drag & Drop Overlay -->
+    <div id="drop-overlay" class="drop-overlay">
+        <div class="drop-box">
+            <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+            <div class="drop-title">APK / XAPK Dosyasını Bırakın</div>
+            <div class="drop-desc">Dosya otomatik olarak ADB üzerinden cihaza veya emülatöre yüklenecektir (.apk, .xapk, .apks)</div>
+        </div>
+    </div>
 
-        // Custom Dropdown JS Manager Class
-        class CustomSelect {
-            constructor(elementId, onChangeCallback) {
-                this.container = document.getElementById(elementId);
-                this.trigger = this.container.querySelector('.custom-select-trigger');
-                this.triggerText = this.container.querySelector('.custom-select-trigger-text');
-                this.dropdown = this.container.querySelector('.custom-select-dropdown');
-                this.searchInput = this.container.querySelector('.custom-select-search-input');
-                this.optionsContainer = this.container.querySelector('.custom-select-options');
-                this.onChange = onChangeCallback;
-                
-                this.value = '';
-                this.options = []; // list of { value, text, subtitle }
-                
-                this.initEvents();
-            }
-            
-            initEvents() {
-                this.trigger.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    document.querySelectorAll('.custom-select-dropdown').forEach(d => {
-                        if (d !== this.dropdown) d.classList.remove('open');
-                    });
-                    this.dropdown.classList.toggle('open');
-                    if (this.dropdown.classList.contains('open')) {
-                        this.searchInput.focus();
-                    }
-                });
-                
-                this.searchInput.addEventListener('input', () => {
-                    const query = this.searchInput.value.trim().toLowerCase();
-                    this.filterOptions(query);
-                });
-                
-                document.addEventListener('click', () => {
-                    this.dropdown.classList.remove('open');
-                });
-                
-                this.dropdown.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                });
-            }
-            
-            setOptions(optionsList) {
-                this.options = optionsList;
-                this.renderOptions(optionsList);
-            }
-            
-            renderOptions(list) {
-                this.optionsContainer.innerHTML = '';
-                if (list.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.className = 'custom-select-no-options';
-                    empty.textContent = 'Sonuç bulunamadı';
-                    this.optionsContainer.appendChild(empty);
-                    return;
-                }
-                
-                list.forEach(opt => {
-                    const item = document.createElement('div');
-                    item.className = 'custom-select-option';
-                    if (opt.value === this.value) {
-                        item.classList.add('selected');
-                    }
-                    
-                    const title = document.createElement('div');
-                    title.className = 'option-title';
-                    title.textContent = opt.text;
-                    item.appendChild(title);
-                    
-                    if (opt.subtitle) {
-                        const sub = document.createElement('div');
-                        sub.className = 'option-subtitle';
-                        sub.textContent = opt.subtitle;
-                        item.appendChild(sub);
-                    }
-                    
-                    item.addEventListener('click', () => {
-                        this.setValue(opt.value, opt.text);
-                        this.dropdown.classList.remove('remove');
-                        this.dropdown.classList.remove('open');
-                    });
-                    
-                    this.optionsContainer.appendChild(item);
-                });
-            }
-            
-            filterOptions(query) {
-                let filtered = this.options.filter(opt => 
-                    opt.text.toLowerCase().includes(query) || 
-                    (opt.subtitle && opt.subtitle.toLowerCase().includes(query)) ||
-                    opt.value.toLowerCase().includes(query)
-                );
-                
-                // Dynamic addition of custom typed package/script names
-                if (query && !this.options.some(opt => opt.value.toLowerCase() === query)) {
-                    filtered.push({
-                        value: this.searchInput.value.trim(),
-                        text: `➕ Özel Ekle: "${this.searchInput.value.trim()}"`,
-                        subtitle: 'Listede olmayan özel değer olarak seç'
-                    });
-                }
-                this.renderOptions(filtered);
-            }
-            
-            setValue(val, textOverride = '') {
-                this.value = val;
-                if (!textOverride) {
-                    const found = this.options.find(o => o.value === val);
-                    textOverride = found ? found.text : val;
-                }
-                
-                // If it's a dynamic custom option, extract clean text
-                if (textOverride.startsWith('➕ Özel Ekle:')) {
-                    textOverride = val;
-                }
-                
-                this.triggerText.textContent = textOverride;
-                
-                // Refresh selection visual state
-                this.renderOptions(this.options);
-                this.searchInput.value = '';
-                
-                if (this.onChange) {
-                    this.onChange(val);
-                }
-            }
-        }
+    <!-- Upload Progress Toast -->
+    <div id="upload-toast" class="upload-toast" role="status">
+        <i class="fa-solid fa-spinner fa-spin" style=" font-size: 18px;"></i>
+        <div id="upload-toast-text">APK yükleniyor, lütfen bekleyin...</div>
+    </div>
 
-        // DOM Elements
-        const dotDevice = document.getElementById('dot-device');
-        const valDevice = document.getElementById('val-device');
-        const dotFrida = document.getElementById('dot-frida');
-        const valFrida = document.getElementById('val-frida');
-        const dotProxy = document.getElementById('dot-proxy');
-        const valProxy = document.getElementById('val-proxy');
-        const dotCert = document.getElementById('dot-cert');
-        const valCert = document.getElementById('val-cert');
+    <!-- Logcat Live Viewer Modal -->
+    <div id="logcat-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-content logcat-modal-content" role="dialog" aria-modal="true" aria-labelledby="logcat-title">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-list-check" style=" font-size: 20px;"></i>
+                    <div>
+                        <div class="modal-title" id="logcat-title">Android Canlı Logcat İzleyici</div>
+                        <div style="font-size: 11px; color: var(--text-dim);" id="logcat-target-display">Hedef: com.instagram.android</div>
+                    </div>
+                </div>
+                <button class="btn-close" id="btn-close-logcat" aria-label="Logcat penceresini kapat"><i class="fa-solid fa-xmark"></i></button>
+            </div>
 
-        const btnStartFrida = document.getElementById('btn-start-frida');
-        const btnStopFrida = document.getElementById('btn-stop-frida');
-        const btnStartBypass = document.getElementById('btn-start-bypass');
-        const btnStopBypass = document.getElementById('btn-stop-bypass');
-        const btnInjectScript = document.getElementById('btn-inject-script');
-        const btnRefresh = document.getElementById('btn-refresh');
-        const btnStartMemu = document.getElementById('btn-start-memu');
+            <div class="logcat-controls">
+                <div style="display: flex; gap: 8px; flex-grow: 1; align-items: center; flex-wrap: wrap;">
+                    <input type="text" class="proxy-field" id="logcat-package-filter" aria-label="Logcat paket filtresi" placeholder="Paket Adı (Örn: com.instagram.android)..." style="flex: 1.2; min-width: 160px; font-size: 12px; padding: 7px 10px;">
+                    <input type="text" class="proxy-field" id="logcat-text-filter" aria-label="Logcat metin filtresi" placeholder="Kelime / Tag Filtresi (Örn: SSL, OkHttp, Fatal)..." style="flex: 1.5; min-width: 180px; font-size: 12px; padding: 7px 10px;">
+                    <select id="logcat-lines-select" aria-label="Logcat satır sayısı" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 11px; outline: none; cursor: pointer;">
+                        <option value="100">100 Satır</option>
+                        <option value="250" selected>250 Satır</option>
+                        <option value="500">500 Satır</option>
+                        <option value="1000">1000 Satır</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <label class="custom-checkbox-wrapper" style="padding: 4px 8px; margin-bottom: 0;">
+                        <input type="checkbox" id="check-logcat-live" checked>
+                        <span class="custom-checkbox-box"></span>
+                        <span class="custom-checkbox-label" style="font-size: 11px;">Canlı Akış</span>
+                    </label>
+                    <button class="btn btn-secondary btn-mini" id="btn-refresh-logcat" title="Yenile"><i class="fa-solid fa-arrows-rotate"></i></button>
+                    <button class="btn btn-secondary btn-mini" id="btn-clear-device-logcat" title="Cihaz logcat arabelleğini temizle"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn btn-secondary btn-mini" id="btn-copy-logcat" title="Panoya Kopyala"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
 
-        const proxyIp = document.getElementById('proxy-ip');
-        const proxyPort = document.getElementById('proxy-port');
-        const btnProxyOn = document.getElementById('btn-proxy-on');
-        const btnProxyOff = document.getElementById('btn-proxy-off');
-        const btnStartMitmweb = document.getElementById('btn-start-mitmweb');
-        const btnCertInstall = document.getElementById('btn-cert-install');
-        const btnCertRemove = document.getElementById('btn-cert-remove');
+            <div class="logcat-body" id="logcat-output">
+                <div style="opacity: 0.5; font-style: italic;">Logcat yükleniyor...</div>
+            </div>
 
-        const scriptEditor = document.getElementById('script-editor');
-        const editorFilename = document.getElementById('editor-filename');
-        const btnSaveScript = document.getElementById('btn-save-script');
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-dim);">
+                <span id="logcat-count-badge">0 satır yüklendi</span>
+                <span style="opacity: 0.7;">adb logcat -d -v time</span>
+            </div>
+        </div>
+    </div>
 
-        const consoleOutput = document.getElementById('console-output');
-        const btnClearConsole = document.getElementById('btn-clear-console');
-        const adbCmdInput = document.getElementById('adb-cmd-input');
-
-        const checkThirdParty = document.getElementById('check-third-party');
-        const checkAutoClear = document.getElementById('check-auto-clear');
-
-        // Dropdown Instances
-        let appSelect = null;
-        let scriptSelect = null;
-
-        // Initialize drop downs
-        function initDropdowns() {
-            appSelect = new CustomSelect('dropdown-app', (val) => {
-                console.log('Uygulama seçildi:', val);
-            });
-            
-            scriptSelect = new CustomSelect('dropdown-script', (val) => {
-                console.log('Script seçildi:', val);
-                loadScriptContent(val);
-            });
-        }
-
-        // Status Polling
-        async function updateStatus() {
-            try {
-                const res = await fetch('/api/status');
-                const status = await res.json();
-                
-                // Device connection
-                if (status.device_connected) {
-                    dotDevice.className = 'status-dot active';
-                    valDevice.textContent = 'Bağlı';
-                } else {
-                    dotDevice.className = 'status-dot inactive';
-                    valDevice.textContent = 'Bağlı değil';
-                }
-
-                // Frida Server
-                if (status.frida_server_running) {
-                    dotFrida.className = 'status-dot active';
-                    valFrida.textContent = 'Çalışıyor';
-                } else {
-                    dotFrida.className = 'status-dot inactive';
-                    valFrida.textContent = 'Durdu';
-                }
-
-                // Proxy status
-                if (status.proxy_status === "Kapatıldı") {
-                    dotProxy.className = 'status-dot inactive';
-                    valProxy.textContent = 'Kapalı';
-                } else if (status.proxy_status === "Cihaz Yok") {
-                    dotProxy.className = 'status-dot inactive';
-                    valProxy.textContent = 'Cihaz Yok';
-                } else if (status.proxy_status === "Bilinmiyor") {
-                    dotProxy.className = 'status-dot warning';
-                    valProxy.textContent = 'Bilinmiyor';
-                } else {
-                    dotProxy.className = 'status-dot active';
-                    valProxy.textContent = status.proxy_status;
-                }
-
-                // Cert status
-                const certMap = {
-                    "installed": { text: "Kurulu", dot: "status-dot active" },
-                    "not_installed": { text: "Kurulu Değil", dot: "status-dot inactive" },
-                    "no_device": { text: "Cihaz Yok", dot: "status-dot warning" },
-                    "no_local_cert": { text: "Yerel Sertifika Yok", dot: "status-dot warning" },
-                    "hash_failed": { text: "Hash Alınamadı", dot: "status-dot warning" }
-                };
-
-                const certInfo = certMap[status.cert_status] || { text: status.cert_status || "Bilinmiyor", dot: "status-dot warning" };
-                dotCert.className = certInfo.dot;
-                valCert.textContent = certInfo.text;
-
-                if (status.cert_installed) {
-                    btnCertInstall.style.display = 'none';
-                    btnCertRemove.style.display = 'block';
-                } else {
-                    btnCertInstall.style.display = 'block';
-                    btnCertRemove.style.display = 'none';
-                }
-            } catch (err) {
-                console.error('Durum güncellenemedi:', err);
-            }
-        }
-
-        // Action POST Util
-        async function postAction(url, body = {}) {
-            try {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                const data = await res.json();
-                setTimeout(updateStatus, 600);
-                return data;
-            } catch (err) {
-                console.error(`İstek hatası (${url}):`, err);
-            }
-        }
-
-        // Fetch application packages dynamically from device via adb
-        async function loadPackagesList() {
-            const isThirdPartyOnly = checkThirdParty.checked;
-            try {
-                const res = await fetch(`/api/list_packages?third_party=${isThirdPartyOnly}`);
-                const data = await res.json();
-                if (data.success && data.packages.length > 0) {
-                    const mapped = data.packages.map(pkg => ({
-                        value: pkg.package,
-                        text: pkg.name,
-                        subtitle: pkg.package
-                    }));
-                    appSelect.setOptions(mapped);
-                    
-                    // Default to Instagram if it exists, otherwise first app
-                    const instagramOpt = mapped.find(o => o.value === 'com.instagram.android');
-                    if (instagramOpt) {
-                        appSelect.setValue(instagramOpt.value, instagramOpt.text);
-                    } else {
-                        appSelect.setValue(mapped[0].value, mapped[0].text);
-                    }
-                }
-            } catch (err) {
-                console.error('Paketler yüklenemedi:', err);
-            }
-        }
-
-        // Load JS Scripts list from directory
-        async function loadScriptsList() {
-            try {
-                const res = await fetch('/api/list_scripts');
-                if (!res.ok) throw new Error('API hatası: ' + res.status);
-                const data = await res.json();
-                if (data.success && data.scripts.length > 0) {
-                    const mapped = data.scripts.map(s => ({
-                        value: s,
-                        text: s,
-                        subtitle: 'Frida script'
-                    }));
-                    scriptSelect.setOptions(mapped);
-                    const defaultScript = mapped.find(s => s.value === 'nev1.js') ? 'nev1.js' : mapped[0].value;
-                    scriptSelect.setValue(defaultScript);
-                } else {
-                    setFallbackScripts();
-                }
-            } catch (err) {
-                console.error('Script listesi yüklenemedi, fallback kuruluyor:', err);
-                setFallbackScripts();
-            }
-        }
-        // Load running packages list
-        async function loadRunningPackagesList() {
-            const listContainer = document.getElementById('running-apps-list');
-            const countBadge = document.getElementById('running-apps-count');
-            try {
-                const res = await fetch('/api/list_running_packages');
-                if (!res.ok) throw new Error('API hatası: ' + res.status);
-                const data = await res.json();
-                if (data.success && data.packages) {
-                    listContainer.innerHTML = '';
-                    countBadge.textContent = `${data.packages.length} adet`;
-                    
-                    if (data.packages.length === 0) {
-                        listContainer.innerHTML = '<div style="opacity: 0.4; font-style: italic; text-align: center; padding: 10px 0;">Çalışan uygulama yok</div>';
-                        return;
-                    }
-                    
-                    data.packages.forEach(pkg => {
-                        const item = document.createElement('div');
-                        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05);';
-                        
-                        const textSpan = document.createElement('span');
-                        textSpan.style.cssText = 'overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; margin-right: 8px; font-family: \'JetBrains Mono\', monospace; font-size: 10px; color: rgba(255, 255, 255, 0.8);';
-                        textSpan.textContent = pkg;
-                        textSpan.title = pkg;
-                        
-                        const killBtn = document.createElement('button');
-                        killBtn.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 11px; padding: 2px 5px; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center;';
-                        killBtn.innerHTML = '<i class="fa-solid fa-xmark" style="color: #ffffff !important; font-size: 11px; margin-right: 0; transition: color 0.2s;"></i>';
-                        killBtn.title = 'Sonlandır (Force Stop)';
-
-                        killBtn.addEventListener('mouseenter', () => {
-                            const icon = killBtn.querySelector('i');
-                            if (icon) icon.style.setProperty('color', '#ef4444', 'important');
-                        });
-                        killBtn.addEventListener('mouseleave', () => {
-                            const icon = killBtn.querySelector('i');
-                            if (icon) icon.style.setProperty('color', '#ffffff', 'important');
-                        });
-                        
-                        killBtn.addEventListener('click', async (e) => {
-                            e.stopPropagation();
-                            killBtn.disabled = true;
-                            killBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color: #ef4444 !important; font-size: 11px; margin-right: 0;"></i>';
-                            try {
-                                const killRes = await fetch('/api/force_stop_package', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ app_package: pkg })
-                                });
-                                const killData = await killRes.json();
-                                if (killData.success) {
-                                    loadRunningPackagesList();
-                                }
-                            } catch (err) {
-                                console.error('Uygulama sonlandırılamadı:', err);
-                            }
-                        });
-                        
-                        item.appendChild(textSpan);
-                        item.appendChild(killBtn);
-                        listContainer.appendChild(item);
-                    });
-                }
-            } catch (err) {
-                console.error('Çalışan paket listesi alınamadı:', err);
-                listContainer.innerHTML = '<div style="opacity: 0.4; font-style: italic; text-align: center; padding: 10px 0; color: #ef4444;">Yüklenemedi</div>';
-            }
-        }
-        function setFallbackScripts() {
-            const fallback = [{ value: 'nev1.js', text: 'nev1.js (Varsayılan)', subtitle: 'Varsayılan Frida script' }];
-            scriptSelect.setOptions(fallback);
-            scriptSelect.setValue('nev1.js');
-        }
-
-        // Read Script File Content
-        async function loadScriptContent(scriptName) {
-            if (!scriptName) return;
-            editorFilename.textContent = scriptName;
-            scriptEditor.placeholder = `${scriptName} içeriği yükleniyor...`;
-            try {
-                const res = await fetch(`/api/read_script?script_name=${encodeURIComponent(scriptName)}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    scriptEditor.value = data.content;
-                } else {
-                    scriptEditor.value = '';
-                    scriptEditor.placeholder = `Hata: Dosya okunamadı.`;
-                }
-            } catch (err) {
-                scriptEditor.value = '';
-                scriptEditor.placeholder = `Dosya yüklenemedi.`;
-            }
-        }
-
-        // Save Script Content
-        async function saveScript() {
-            const scriptName = scriptSelect.value;
-            const content = scriptEditor.value;
-            if (!scriptName) return;
-            btnSaveScript.disabled = true;
-            btnSaveScript.textContent = '💾 Kaydediliyor...';
-            try {
-                const res = await fetch('/api/save_script', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ script_name: scriptName, content })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    alert(`${scriptName} başarıyla kaydedildi!`);
-                } else {
-                    alert('Hata: Kaydedilemedi. ' + data.error);
-                }
-            } catch (err) {
-                alert('İletişim hatası oluştu.');
-            } finally {
-                btnSaveScript.disabled = false;
-                btnSaveScript.textContent = '💾 Değişiklikleri Kaydet';
-            }
-        }
-        // Initialize dynamic resizable splitters
-        function initResizableSplitters() {
-            setupResizer('workspace-resizer', 'editor-pane', 'console-pane', 200, 300);
-            setupResizer('console-resizer', 'console-left-pane', 'console-right-pane', 250, 150);
-        }
-
-        function setupResizer(resizerId, leftId, rightId, minLeftWidth, minRightWidth) {
-            const resizer = document.getElementById(resizerId);
-            const leftPane = document.getElementById(leftId);
-            const rightPane = document.getElementById(rightId);
-
-            resizer.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-                resizer.classList.add('dragging');
-            });
-
-            function handleMouseMove(e) {
-                const container = resizer.parentElement;
-                const containerRect = container.getBoundingClientRect();
-                const xOffset = e.clientX - containerRect.left;
-                
-                if (xOffset >= minLeftWidth && xOffset <= (containerRect.width - minRightWidth)) {
-                    const leftRatio = (xOffset / containerRect.width) * 100;
-                    const rightRatio = 100 - leftRatio;
-                    
-                    leftPane.style.flex = leftRatio;
-                    rightPane.style.flex = rightRatio;
-                }
-            }
-
-            function handleMouseUp() {
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleMouseUp);
-                resizer.classList.remove('dragging');
-            }
-        }
-        // Poll and render logs
-        let lastLogCount = 0;
-        async function fetchLogs() {
-            try {
-                const res = await fetch('/api/get_logs');
-                const data = await res.json();
-                if (data.success && data.logs.length !== lastLogCount) {
-                    // Update log container
-                    consoleOutput.innerHTML = '';
-                    data.logs.forEach(text => {
-                        const entry = document.createElement('div');
-                        entry.className = 'log-entry';
-                        
-                        // Color coding rules
-                        if (text.startsWith('🟢')) {
-                            entry.classList.add('log-success');
-                        } else if (text.startsWith('🔴')) {
-                            entry.classList.add('log-error');
-                        } else if (text.startsWith('🟡')) {
-                            entry.classList.add('log-warning');
-                        } else if (text.startsWith('🔵')) {
-                            entry.classList.add('log-process');
-                        } else if (text.startsWith('💻')) {
-                            entry.classList.add('log-terminal');
-                        } else {
-                            entry.classList.add('log-info');
-                        }
-                        
-                        entry.textContent = text;
-                        consoleOutput.appendChild(entry);
-                    });
-                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
-                    lastLogCount = data.logs.length;
-                }
-            } catch (err) {
-                console.error('Loglar alinamadi:', err);
-            }
-        }
-
-        function setupLogStream() {
-            // Poll logs every 800ms
-            fetchLogs();
-            setInterval(fetchLogs, 800);
-        }
-
-        // Run ADB Command
-        async function runAdbCommand() {
-            const cmd = adbCmdInput.value.trim();
-            if (!cmd) return;
-            adbCmdInput.value = '';
-            
-            // Execute in background API
-            await postAction('/api/run_adb', { command: cmd });
-        }
-
-        // Event Listeners
-        btnStartFrida.addEventListener('click', () => {
-            postAction('/api/start_frida');
-            postAction('/api/toggle_proxy', {
-                enabled: true,
-                proxy_ip: proxyIp.value.trim(),
-                proxy_port: proxyPort.value.trim()
-            });
-        });
-        btnStopFrida.addEventListener('click', () => postAction('/api/stop_frida'));
-        
-        const checkStartOnProfile = document.getElementById('check-start-on-profile');
-        const inputProfileUsername = document.getElementById('input-profile-username');
-
-        checkStartOnProfile.addEventListener('change', () => {
-            if (checkStartOnProfile.checked) {
-                inputProfileUsername.style.display = 'inline-block';
-                inputProfileUsername.focus();
-            } else {
-                inputProfileUsername.style.display = 'none';
-            }
-        });
-
-        btnStartBypass.addEventListener('click', () => {
-            if (checkAutoClear.checked) {
-                consoleOutput.innerHTML = '<div class="log-entry log-info">⚪ Otomatik temizlendi. Bypass başlatılıyor...</div>';
-            }
-            const bypassModeSelect = document.getElementById('select-bypass-mode');
-            postAction('/api/start_bypass', {
-                app_package: appSelect.value,
-                script_name: scriptSelect.value,
-                start_on_profile: checkStartOnProfile.checked,
-                instagram_username: inputProfileUsername.value.trim(),
-                bypass_mode: bypassModeSelect.value
-            });
-        });
-
-        btnStopBypass.addEventListener('click', () => {
-            postAction('/api/stop_bypass', { app_package: appSelect.value });
-            setTimeout(loadRunningPackagesList, 1500);
-        });
-        
-        btnInjectScript.addEventListener('click', () => {
-            if (!scriptSelect.value) {
-                alert("Lütfen enjekte etmek istediğiniz scripti seçin!");
-                return;
-            }
-            postAction('/api/inject_script', {
-                app_package: appSelect.value,
-                script_name: scriptSelect.value
-            });
-        });
-        
-        btnRefresh.addEventListener('click', async () => {
-            await postAction('/api/check_devices');
-            loadPackagesList();
-            loadRunningPackagesList();
-        });
-        
-        btnProxyOn.addEventListener('click', () => {
-            postAction('/api/toggle_proxy', {
-                enabled: true,
-                proxy_ip: proxyIp.value.trim(),
-                proxy_port: proxyPort.value.trim()
-            });
-        });
-
-        btnProxyOff.addEventListener('click', () => {
-            postAction('/api/toggle_proxy', { enabled: false });
-        });
-
-        btnStartMitmweb.addEventListener('click', async () => {
-            btnStartMitmweb.disabled = true;
-            const originalHTML = btnStartMitmweb.innerHTML;
-            btnStartMitmweb.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 0; color: white !important;"></i> Başlatılıyor...';
-            try {
-                const res = await postAction('/api/start_mitmweb');
-                if (res && res.success) {
-                    console.log("Mitmweb başlatıldı:", res.message);
-                } else {
-                    alert("Mitmweb başlatılamadı: " + (res ? res.message : "Bilinmeyen hata"));
-                }
-            } catch (err) {
-                console.error("Mitmweb başlatma hatası:", err);
-            } finally {
-                btnStartMitmweb.disabled = false;
-                btnStartMitmweb.innerHTML = originalHTML;
-            }
-        });
-
-        btnCertInstall.addEventListener('click', async () => {
-            btnCertInstall.disabled = true;
-            const originalHTML = btnCertInstall.innerHTML;
-            btnCertInstall.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 4px; color: white !important;"></i> Yükleniyor...';
-            try {
-                const res = await postAction('/api/install_cert');
-                if (res && res.success) {
-                    alert("Sertifika başarıyla kuruldu!");
-                } else {
-                    alert("Sertifika kurulum hatası: " + (res ? res.message : "Bilinmeyen hata"));
-                }
-            } catch (err) {
-                console.error("Sertifika yükleme hatası:", err);
-            } finally {
-                btnCertInstall.disabled = false;
-                btnCertInstall.innerHTML = originalHTML;
-            }
-        });
-
-        btnCertRemove.addEventListener('click', async () => {
-            if (!confirm("mitmproxy CA sertifikasını cihazdan kaldırmak istediğinize emin misiniz?")) return;
-            btnCertRemove.disabled = true;
-            const originalHTML = btnCertRemove.innerHTML;
-            btnCertRemove.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 4px; color: white !important;"></i> Kaldırılıyor...';
-            try {
-                const res = await postAction('/api/remove_cert');
-                if (res && res.success) {
-                    alert("Sertifika başarıyla kaldırıldı!");
-                } else {
-                    alert("Sertifika kaldırma hatası: " + (res ? res.message : "Bilinmeyen hata"));
-                }
-            } catch (err) {
-                console.error("Sertifika kaldırma hatası:", err);
-            } finally {
-                btnCertRemove.disabled = false;
-                btnCertRemove.innerHTML = originalHTML;
-            }
-        });
-
-        btnStartMemu.addEventListener('click', async () => {
-            btnStartMemu.disabled = true;
-            const originalHTML = btnStartMemu.innerHTML;
-            btnStartMemu.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 0; color: white !important;"></i> Başlatılıyor...';
-            try {
-                const res = await postAction('/api/start_memu');
-                if (res && res.success) {
-                    console.log("MEmu başlatıldı:", res.message);
-                } else {
-                    alert("MEmu başlatılamadı: " + (res ? res.message : "Bilinmeyen hata"));
-                }
-            } catch (err) {
-                console.error("MEmu başlatma hatası:", err);
-            } finally {
-                btnStartMemu.disabled = false;
-                btnStartMemu.innerHTML = originalHTML;
-            }
-        });
-
-        btnSaveScript.addEventListener('click', saveScript);
-
-        const btnCleanAds = document.getElementById('btn-clean-ads');
-        btnCleanAds.addEventListener('click', () => {
-            if (confirm("MEmu Player'ın tüm arka plan reklam ve bloatware hizmetlerini kalıcı olarak devre dışı bırakmak istediğinize emin misiniz?")) {
-                postAction('/api/clean_ads');
-            }
-        });
-        
-        btnClearConsole.addEventListener('click', () => {
-            postAction('/api/clear_logs');
-            consoleOutput.innerHTML = '<div class="log-entry log-info">⚪ Log geçmişi temizlendi.</div>';
-            lastLogCount = 1;
-        });
-
-        adbCmdInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                runAdbCommand();
-            }
-        });
-
-        checkThirdParty.addEventListener('change', () => {
-            loadPackagesList();
-        });
-
-        // Initialize on load
-        window.addEventListener('DOMContentLoaded', async () => {
-            initDropdowns();
-            initResizableSplitters();
-            await updateStatus();
-            await loadPackagesList();
-            await loadScriptsList();
-            loadRunningPackagesList();
-            setupLogStream();
-            
-            // Poll status every 1.5 seconds (near real-time)
-            setInterval(() => {
-                updateStatus();
-                loadRunningPackagesList();
-            }, 1500);
-        });
-    </script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>

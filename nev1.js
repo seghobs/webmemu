@@ -45,7 +45,7 @@ setTimeout(function() {
             };
             console.log("[✓] OkHttp3 hooked");
         } catch(e) {
-            console.log("[-] OkHttp3: " + e);
+            console.log("[*] OkHttp3 CertificatePinner bulunamadı (Instagram/Meta için normal, atlandı)");
         }
 
         // SSLContext

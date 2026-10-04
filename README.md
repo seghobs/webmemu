@@ -33,7 +33,7 @@ WebMEmu, Android emülatörleri (özellikle **MEmu Play**) ve gerçek cihazlar �
 * Cihazda/Emülatörde **Root yetkisi** etkinleştirilmiş olmalıdır.
 
 ### Çalıştırma
-Projeyi başlatmak için ana dizindeki [**`run_web.bat`**](file:///c:/Users/user/Desktop/ssl_pining/run_web.bat) dosyasına çift tıklamanız yeterlidir. 
+Projeyi başlatmak için ana dizindeki [**`run_web.bat`**](run_web.bat) dosyasına çift tıklamanız yeterlidir.
 
 Bu betik:
 1. Gerekli olan `Flask` kütüphanesini sisteminizde yüklü değilse otomatik olarak kuracaktır.
@@ -49,6 +49,30 @@ python app.py
 ---
 
 ## 📂 Dosya Yapısı
+
+### Güncel arayüz ve ADB bağlantısı
+
+Arayüz Flask, HTML ve JavaScript ile çalışır; koyu tema, mobil düzen, ayrı script editörü ve canlı konsol içerir. Cihaz işlemleri arka planda yürütülür; panel iş durumunu sorgular.
+
+ADB komutları ayrı işçi ve gözetici süreçlerinde süre sınırıyla çalışır. Takılan işçi otomatik değiştirilir; belirsiz sonuçlanan komutlar tekrar gönderilmez. Eşzamanlı komut kuyruğu benzersiz sıra numarası kullanır.
+
+Windows'ta resmi ADB çalışma kopyasını yüklemek için:
+
+```powershell
+powershell -NoProfile -File tools/install_adb.ps1
+```
+
+Cihaz yönetimi özel 5038 servis portunu kullanır. Yerel MEmu cihazında Frida ve proxy verisi doğrudan adbd TCP bağlantısından geçer; Windows ADB servisinden taşınmaz. Normal Frida ucu `127.0.0.1:27043` üzerinden cihazdaki `27042` portuna bağlanır. Bu doğrudan yol yalnızca yerel MEmu TCP cihazlarını destekler ve kimlik doğrulama isteyen cihazları reddeder. Diğer tünel türleri için ayrı 5039 servisi vardır.
+
+### Testler
+
+```powershell
+python -m pip install flask playwright psutil
+python -m playwright install chromium
+python -B -m unittest discover -s tests
+```
+
+ADB kuyruğu, süre sınırları, otomatik kurtarma, tünel izolasyonu ve tarayıcı arayüzü sınanır. Gerçek cihaz testleri ayrı ve isteğe bağlıdır; komutları ve kapsamı [test belgesinde](tests/README.md) bulunur. Yerel kayıtlar, APK dosyaları ve test ekran görüntüleri Git'e eklenmez.
 
 *   `app.py`: Arka planda ADB, Frida ve cihaz yönetim süreçlerini yöneten Flask API sunucusu.
 *   `templates/index.html`: Kullanıcı dostu, modern, dinamik ve tek sayfalık web arayüzü.
