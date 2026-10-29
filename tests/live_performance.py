@@ -6,6 +6,7 @@ import threading
 import statistics
 import time
 import urllib.request
+from local_api import panel_open
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
@@ -24,7 +25,7 @@ opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
 def request(path,body=None):
     start=time.perf_counter()
     req=urllib.request.Request(BASE+path,data=json.dumps(body).encode() if body is not None else None,headers={'Content-Type':'application/json'} if body is not None else {})
-    with opener.open(req,timeout=10) as res:data=json.load(res);status=res.status
+    with panel_open(req,timeout=10) as res:data=json.load(res);status=res.status
     return data,round((time.perf_counter()-start)*1000,2),status
 
 result={'api':{},'ui':{},'javascript_errors':[]}

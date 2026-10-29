@@ -1,7 +1,9 @@
 // Keep each request bounded and each button tied to its real operation.
 const nativeFetch = window.fetch.bind(window);
 function apiFetch(url, options = {}) {
-    return nativeFetch(url, { ...options, signal: options.signal || AbortSignal.timeout(url === '/api/install_apk' ? 180000 : 8000) });
+    const headers = new Headers(options.headers);
+    headers.set('X-WebMEmu-Token', document.querySelector('meta[name="webmemu-token"]')?.content || '');
+    return nativeFetch(url, { ...options, headers, signal: options.signal || AbortSignal.timeout(url === '/api/install_apk' ? 180000 : 8000) });
 }
 let clickButton = null;
 document.addEventListener('click', event => {
@@ -35,6 +37,7 @@ async function finishJob(data) {
     }
     throw new Error('İşlem sürüyor; sonucu loglardan takip edebilirsiniz.');
 }
+let mitmwebRunning = false;
 let packagesPending = false, runningPending = false, logsPending = false;
 let lastPackagesKey = '', lastRunningKey = '', lastDeviceConnected = null;
 let packagesRetry;
@@ -230,6 +233,7 @@ let editorDirty = false;
         const btnStopFrida = document.getElementById('btn-stop-frida');
         const btnStartBypass = document.getElementById('btn-start-bypass');
         const btnStopBypass = document.getElementById('btn-stop-bypass');
+        const btnSmartBypass = document.getElementById('btn-smart-bypass');
         const btnInjectScript = document.getElementById('btn-inject-script');
         const btnRefresh = document.getElementById('btn-refresh');
         const btnStartMemu = document.getElementById('btn-start-memu');
@@ -270,6 +274,30 @@ let editorDirty = false;
         }
 
         // Status Polling
+        let lastProxyState = null;
+        function renderProxyControls(status) {
+            lastProxyState = status;
+            const known = status.device_connected && !status.error &&
+                status.proxy_status && !['Bilinmiyor', 'Cihaz Yok'].includes(status.proxy_status);
+            const active = known && status.proxy_status !== 'Kapatıldı';
+            const matches = active && status.proxy_status === `${proxyIp.value.trim()}:${proxyPort.value.trim()}`;
+            const label = document.getElementById('proxy-control-status');
+            label.dataset.state = known ? (active ? 'on' : 'off') : 'unknown';
+            label.textContent = known ? (active ? `Proxy açık · ${status.proxy_status}` : 'Proxy kapalı') :
+                (!status.device_connected ? 'Cihaz bağlı değil' : 'Proxy durumu doğrulanamadı');
+            if (!busyButtons.has(btnProxyOn)) {
+                btnProxyOn.disabled = !known || matches;
+                btnProxyOn.textContent = matches ? 'Açık' : active ? 'Uygula' : 'Aç';
+            }
+            if (!busyButtons.has(btnProxyOff)) {
+                btnProxyOff.disabled = !known || !active;
+                btnProxyOff.textContent = known && !active ? 'Kapalı' : 'Kapat';
+            }
+        }
+        [proxyIp, proxyPort].forEach(input => input.addEventListener('input', () => {
+            if (lastProxyState) renderProxyControls(lastProxyState);
+        }));
+
         async function updateStatus() {
             if (statusPending) return;
             statusPending = true;
@@ -277,6 +305,13 @@ let editorDirty = false;
                 const res = await apiFetch('/api/status', { signal: AbortSignal.timeout(6000) });
                 if (!res.ok) throw new Error('Durum alınamadı');
                 const status = await res.json();
+                renderSmartStatus(status.smart);
+                btnSmartBypass.disabled = busyButtons.has(btnSmartBypass) || !status.device_connected || status.bypass_running;
+                mitmwebRunning = !!status.mitmweb_running;
+                if (!busyButtons.has(btnStartMitmweb)) {
+                    btnStartMitmweb.textContent = mitmwebRunning ? 'Mitmweb Durdur' : 'Mitmweb Başlat';
+                    btnStartMitmweb.disabled = false;
+                }
 
                 const pill = document.getElementById('session-status');
                 pill.textContent = status.bypass_running ? 'Analiz oturumu aktif' : status.device_connected ? 'Cihaz hazır · Oturum bekleniyor' : 'Cihaz bağlantısı bekleniyor';
@@ -308,6 +343,8 @@ let editorDirty = false;
                     dotFrida.className = 'status-dot inactive';
                     valFrida.textContent = 'Durdu';
                 }
+
+                renderProxyControls(status);
 
                 // Proxy status
                 if (status.proxy_status === "Kapatıldı") {
@@ -354,9 +391,10 @@ let editorDirty = false;
                     checkStealth.checked = !!status.stealth_mode;
                 }
             } catch (err) {
+                renderProxyControls({device_connected: true, error: true});
                 document.getElementById('session-status').textContent = 'Sunucuya ulaşılamıyor';
                 document.getElementById('session-status').dataset.state = 'offline';
-                [btnStartBypass, btnStopBypass, btnStartFrida, btnStopFrida].forEach(button => button.disabled = true);
+                [btnSmartBypass, btnStartBypass, btnStopBypass, btnStartFrida, btnStopFrida].forEach(button => button.disabled = true);
             } finally {
                 statusPending = false;
             }
@@ -695,6 +733,8 @@ let editorDirty = false;
             try {
                 const started = await postAction('/api/start_frida', {}, btnStartFrida);
                 if (started.success !== false) {
+                    const mitmweb = await postAction('/api/start_mitmweb', {}, btnStartMitmweb);
+                    if (mitmweb.success === false) return;
                     await postAction('/api/toggle_proxy', { enabled: true, proxy_ip: proxyIp.value.trim(), proxy_port: proxyPort.value.trim() }, btnStartFrida);
                 }
             } finally { buttonBusy(btnStartFrida, false); updateStatus(); }
@@ -711,6 +751,24 @@ let editorDirty = false;
             } else {
                 inputProfileUsername.style.display = 'none';
             }
+        });
+
+        function renderSmartStatus(smart) {
+            const labels = {idle:'Hazır', analyzing:'Analiz ediliyor', starting:'Başlatılıyor', waiting:'Doğrulama bekleniyor',
+                unverified:'Doğrulanamadı', verified:'HTTPS proxy doğrulandı', unsupported:'Desteklenmiyor', failed:'Hata', stopped:'Durduruldu'};
+            const state = smart || {phase:'idle', message:'Uygulamayı seçip Akıllı bypass düğmesine basın.'};
+            const panel = document.getElementById('smart-bypass-status');
+            panel.dataset.state = state.phase;
+            panel.textContent = `Akıllı bypass · ${labels[state.phase] || state.phase}: ${state.message || ''}` +
+                (state.plan ? ` | İşaretler: ${state.plan.signals.join(', ') || 'standart Java adayı'} | Script: ${state.plan.script || 'seçilmedi'}` : '') +
+                (state.host ? ` | Son kanıt: ${state.host} · HTTP ${state.http_status}` : '');
+        }
+        btnSmartBypass.addEventListener('click', async () => {
+            if (!appSelect.value) { showNotice('Önce hedef uygulamayı seçin.', true); return; }
+            const result = await postAction('/api/smart_bypass', {
+                app_package: appSelect.value, proxy_ip: proxyIp.value.trim(), proxy_port: proxyPort.value.trim()
+            }, btnSmartBypass);
+            if (result.smart) renderSmartStatus(result.smart);
         });
 
         btnStartBypass.addEventListener('click', async () => {
@@ -769,21 +827,11 @@ let editorDirty = false;
         });
 
         btnStartMitmweb.addEventListener('click', async () => {
-            btnStartMitmweb.disabled = true;
-            const originalHTML = btnStartMitmweb.innerHTML;
-            btnStartMitmweb.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 0; color: white !important;"></i> Başlatılıyor...';
-            try {
-                const res = await postAction('/api/start_mitmweb');
-                if (res && res.success) {
-                    console.log("Mitmweb başlatıldı:", res.message);
-                } else {
-                    alert("Mitmweb başlatılamadı: " + (res ? res.message : "Bilinmeyen hata"));
-                }
-            } catch (err) {
-                console.error("Mitmweb başlatma hatası:", err);
-            } finally {
-                btnStartMitmweb.disabled = false;
-                btnStartMitmweb.innerHTML = originalHTML;
+            const stopping = mitmwebRunning;
+            const result = await postAction(stopping ? '/api/stop_mitmweb' : '/api/start_mitmweb', {}, btnStartMitmweb);
+            if (result.success) {
+                mitmwebRunning = !stopping;
+                btnStartMitmweb.textContent = mitmwebRunning ? 'Mitmweb Durdur' : 'Mitmweb Başlat';
             }
         });
 

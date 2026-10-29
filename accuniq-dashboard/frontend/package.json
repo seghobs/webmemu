@@ -1,0 +1,8 @@
+{
+  "name": "accuniq-local-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {"dev": "next dev --hostname 127.0.0.1 --port 3001", "build": "next build", "start": "next start --hostname 127.0.0.1 --port 3001", "typecheck": "tsc --noEmit"},
+  "dependencies": {"next": "16.3.8", "react": "^19.2.0", "react-dom": "^19.2.0", "lucide-react": "^0.468.0", "@zxing/browser": "^0.1.5"},
+  "devDependencies": {"typescript": "^5.9.0", "@types/react": "^19.2.0", "@types/react-dom": "^19.2.0", "@types/node": "^24.0.0"}
+}

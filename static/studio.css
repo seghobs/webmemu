@@ -74,3 +74,7 @@ button:disabled{cursor:not-allowed}
 ::selection{background:#5a51b0;color:#fff}
 .btn:not(.btn-secondary):not(.btn-error):not(#btn-save-script):not(#btn-open-logcat){background:#6258c9}
 .btn:not(.btn-secondary):not(.btn-error):not(#btn-save-script):not(#btn-open-logcat):hover:not(:disabled){background:#6b61d2}
+
+.proxy-control-status{font-size:11px;color:var(--text-dim);margin-bottom:10px;overflow-wrap:anywhere}.proxy-control-status[data-state="on"]{color:#a5dfb5}.proxy-control-status[data-state="off"]{color:#a0a7c0}
+
+.smart-status{padding:12px 16px;border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.6;color:var(--text-dim);overflow-wrap:anywhere}.smart-status[data-state="verified"]{color:#a5dfb5;border-color:#446e59}.smart-status[data-state="failed"],.smart-status[data-state="unsupported"]{color:#eea1b5}.action-buttons{flex-wrap:wrap}

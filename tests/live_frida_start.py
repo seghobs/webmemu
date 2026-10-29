@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from local_api import panel_open
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
@@ -18,7 +19,7 @@ BASE = sys.argv[2].rstrip('/')
 
 
 def get(path):
-    with urllib.request.urlopen(BASE + path, timeout=4) as response:
+    with panel_open(BASE + path, timeout=4) as response:
         return json.load(response)
 
 

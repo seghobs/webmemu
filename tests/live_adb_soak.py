@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import time
 import urllib.request
+from local_api import panel_open
 from playwright.sync_api import sync_playwright
 
 parser = argparse.ArgumentParser()
@@ -14,7 +15,7 @@ base = args.run.rstrip('/')
 def request(path, data=None):
     payload = None if data is None else json.dumps(data).encode()
     req = urllib.request.Request(base+path, data=payload, headers={'Content-Type':'application/json'} if payload else {})
-    with urllib.request.urlopen(req, timeout=5) as response:
+    with panel_open(req, timeout=5) as response:
         return json.load(response)
 
 initial = request('/api/status')

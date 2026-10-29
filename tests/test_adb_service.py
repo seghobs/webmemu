@@ -84,6 +84,7 @@ else: print('READY',flush=True)
             manager = web.BypassManager(command_executor=web.run_command)
         self.run_fake()
         client = web.app.test_client()
+        client.environ_base['HTTP_X_WEBMEMU_TOKEN'] = web.app.config['API_TOKEN']
         with patch.object(web, 'manager', manager), patch.object(manager, 'start_frida_server',
                 side_effect=lambda:self.run_fake('sleep', 5, timeout=.5)), patch.object(manager, 'refresh_status',
                 side_effect=manager.status_snapshot):

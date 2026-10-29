@@ -1,0 +1,263 @@
+{
+  "sha256": "6c3f3677816cf8812121c6381956d71a18fd9bdbe31be9ade20736397780a4f3",
+  "size": 3442328,
+  "matches_apk": true,
+  "apk_dex_entries": [
+    "classes.dex"
+  ],
+  "class_count": 2856,
+  "defined_methods": 19257,
+  "method_references": 26339,
+  "invoke_instructions": 64837,
+  "string_count": 29160,
+  "categories": {
+    "reflection": 947,
+    "camera_qr": 12279,
+    "bluetooth": 1,
+    "usb": 1,
+    "sqlite": 566,
+    "network": 149
+  },
+  "hardware_evidence": [
+    {
+      "category": "bluetooth",
+      "caller": "Landroidx/core/content/ContextCompat$LegacyServiceMapHolder;-><clinit>()V",
+      "offset": "0x11e",
+      "opcode": "const-class",
+      "instruction": "v1, Landroid/bluetooth/BluetoothManager;"
+    },
+    {
+      "category": "usb",
+      "caller": "Landroidx/core/content/ContextCompat$LegacyServiceMapHolder;-><clinit>()V",
+      "offset": "0x2cc",
+      "opcode": "const-class",
+      "instruction": "v1, Landroid/hardware/usb/UsbManager;"
+    }
+  ],
+  "native_methods": [
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_api_db_open",
+      "descriptor": "(I Ljava/lang/String; I)J",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_api_version_check",
+      "descriptor": "(I)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_db_close",
+      "descriptor": "(J)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_db_errcode",
+      "descriptor": "(J)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_db_errmsg_native",
+      "descriptor": "(J)Ljava/lang/String;",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_db_last_insert_rowid",
+      "descriptor": "(J)J",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_db_open",
+      "descriptor": "(Ljava/lang/String; I)Lio/liteglue/SQLiteNativeResponse;",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_db_prepare_st",
+      "descriptor": "(J Ljava/lang/String;)Lio/liteglue/SQLiteNativeResponse;",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_db_total_changes",
+      "descriptor": "(J)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_errstr_native",
+      "descriptor": "(I)Ljava/lang/String;",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_bind_double",
+      "descriptor": "(J I D)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_bind_int",
+      "descriptor": "(J I I)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_bind_long",
+      "descriptor": "(J I J)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_bind_null",
+      "descriptor": "(J I)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_bind_text_native",
+      "descriptor": "(J I Ljava/lang/String;)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_column_count",
+      "descriptor": "(J)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_column_double",
+      "descriptor": "(J I)D",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_column_int",
+      "descriptor": "(J I)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_column_long",
+      "descriptor": "(J I)J",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_column_name",
+      "descriptor": "(J I)Ljava/lang/String;",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_column_text_native",
+      "descriptor": "(J I)Ljava/lang/String;",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_column_type",
+      "descriptor": "(J I)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_finish",
+      "descriptor": "(J)I",
+      "access": "public static native",
+      "has_code": false
+    },
+    {
+      "class_name": "Lio/liteglue/SQLiteNDKNativeDriver;",
+      "name": "sqlc_st_step",
+      "descriptor": "(J)I",
+      "access": "public static native",
+      "has_code": false
+    }
+  ],
+  "hardware_strings": [
+    {
+      "index": 5366,
+      "value": "Landroid/bluetooth/BluetoothManager;"
+    },
+    {
+      "index": 11089,
+      "value": "STREAM_BLUETOOTH_SCO"
+    },
+    {
+      "index": 14868,
+      "value": "bluetooth"
+    }
+  ],
+  "split_native_libraries": [
+    "lib/arm64-v8a/libsqlc-ndk-native-driver.so"
+  ],
+  "native_methods_count": 24,
+  "connection_method": "qr",
+  "data_flow": [
+    "BC380 sonuç QR kodu",
+    "ZXing CaptureActivity",
+    "BarcodeScanner.onActivityResult: text / format / cancelled",
+    "Cordova CallbackContext.success → JavaScript",
+    "bcadata sabit alan ayrıştırma",
+    "Önizleme ve profil seçimi",
+    "Yerel SQLite kayıt ve grafikler"
+  ],
+  "conclusion": "Bu APK’nin DEX kodunda ACCUNIQ cihazına doğrudan USB/Bluetooth bağlantısı kuran çağrı bulunamadı. Doğrulanmış aktarım yolu QR okumadır.",
+  "evidence": [
+    {
+      "title": "Uygulama başlangıcı",
+      "source": "kr/co/bca/MainActivity.java:10",
+      "detail": "onCreate → loadUrl(this.launchUrl); Cordova web uygulamasını yükler."
+    },
+    {
+      "title": "Kamera taraması",
+      "source": "com/phonegap/plugins/barcodescanner/BarcodeScanner$1.java:19",
+      "detail": "CaptureActivity için SCAN intent; startActivityForResult(..., 47740)."
+    },
+    {
+      "title": "Ölçüm teslimi",
+      "source": "com/phonegap/plugins/barcodescanner/BarcodeScanner.java:100",
+      "detail": "SCAN_RESULT ve SCAN_RESULT_FORMAT → text, format, cancelled → CallbackContext.success."
+    },
+    {
+      "title": "Genel Bluetooth/USB referansları",
+      "source": "androidx/core/content/ContextCompat$LegacyServiceMapHolder → <clinit>, 0x11e / 0x2cc",
+      "detail": "Yalnızca const-class BluetoothManager ve UsbManager. connect/read/write çağrısı değil."
+    },
+    {
+      "title": "Yerel kayıt",
+      "source": "io/sqlc/SQLitePlugin.java; app.all.js:152,177,6244",
+      "detail": "SQLite köprüsü band.db saklar; ölçüm alanları JavaScript tarafında ayrıştırılır."
+    }
+  ]
+}

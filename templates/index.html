@@ -2,6 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
+    <meta name="webmemu-token" content="{{ api_token }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Instagram & Facebook SSL Pinning Bypass Web Manager. Advanced Frida based developer dashboard.">
     <title>WebMEmu · Ağ Analiz Stüdyosu</title>
@@ -26,6 +27,7 @@
             <!-- Proxy Ayarları -->
             <div class="proxy-panel">
                 <div class="panel-title">Android Proxy Kontrolü</div>
+                <div id="proxy-control-status" class="proxy-control-status" role="status" aria-live="polite" data-state="unknown">Durum kontrol ediliyor…</div>
                 <div class="proxy-inputs">
                     <input type="text" class="proxy-field" id="proxy-ip" aria-label="Proxy IP adresi" value="127.0.0.1" placeholder="IP Adresi">
                     <input type="text" class="proxy-field" id="proxy-port" aria-label="Proxy portu" value="8080" placeholder="Port">
@@ -255,7 +257,8 @@
                 </div>
             </section>
 
-            <div class="session-actions"><div class="action-hint"><span class="step-label">02</span><span>Analiz oturumu</span></div><div class="action-buttons">                <button class="btn btn-success" id="btn-start-bypass">
+            <div class="smart-status" id="smart-bypass-status" role="status" aria-live="polite">Akıllı bypass: henüz analiz yapılmadı.</div>
+            <div class="session-actions"><div class="action-hint"><span class="step-label">02</span><span>Analiz oturumu</span></div><div class="action-buttons">                <button class="btn btn-secondary" id="btn-smart-bypass" title="Hedef APK’yı analiz eder, uygun yerel scripti seçer ve HTTPS yanıtını doğrulamaya çalışır.">Akıllı bypass</button><button class="btn btn-success" id="btn-start-bypass">
                     <i class="fa-solid fa-rocket"></i> Oturumu başlat
                 </button>                <button class="btn btn-secondary" id="btn-inject-script">
                     <i class="fa-solid fa-syringe"></i> Script enjekte et

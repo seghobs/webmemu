@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import time
 import urllib.request
+from local_api import panel_open
 import psutil
 from playwright.sync_api import sync_playwright
 
@@ -15,7 +16,7 @@ BASE = sys.argv[2].rstrip('/')
 
 def status():
     start = time.perf_counter()
-    with urllib.request.urlopen(BASE + '/api/status', timeout=3) as response:
+    with panel_open(BASE + '/api/status', timeout=3) as response:
         data = json.load(response)
     return data, round((time.perf_counter() - start) * 1000, 2)
 

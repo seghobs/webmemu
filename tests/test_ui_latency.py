@@ -15,7 +15,7 @@ class LatencyUITests(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
         ui_app=Flask('ui-latency-fixture',template_folder=str(ROOT/'templates'),static_folder=str(ROOT/'static'))
-        ui_app.add_url_rule('/',view_func=lambda:render_template('index.html'))
+        ui_app.add_url_rule('/',view_func=lambda:render_template('index.html', api_token='ui-test-token'))
         cls.server=make_server('127.0.0.1',0,ui_app,threaded=True)
         cls.worker=threading.Thread(target=cls.server.serve_forever,daemon=True);cls.worker.start()
         cls.url=f'http://127.0.0.1:{cls.server.server_port}'

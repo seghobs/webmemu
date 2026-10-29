@@ -62,6 +62,7 @@ class BackendPerformanceTests(unittest.TestCase):
         with patch.object(web.BypassManager,'find_memu_dir',return_value=None): self.manager=web.BypassManager(command_executor=web.run_command)
         self.patch=patch.object(web,'manager',self.manager);self.patch.start();self.addCleanup(self.patch.stop)
         self.client=web.app.test_client()
+        self.client.environ_base['HTTP_X_WEBMEMU_TOKEN'] = web.app.config['API_TOKEN']
         self.manager.device_connected=True
 
     def test_status_returns_while_device_probe_is_blocked(self):

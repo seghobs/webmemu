@@ -87,3 +87,15 @@ ADB kuyruğu, süre sınırları, otomatik kurtarma, tünel izolasyonu ve taray�
 
 * Proje, `C:\Program Files\Microvirt\MEmu\adb.exe` yolundaki varsayılan MEmu ADB bileşenini kullanmaktadır. Eğer emülatörünüz farklı bir klasöre kuruluysa, `app.py` içerisindeki `self.adb_path` değerini kendi bilgisayarınıza göre güncelleyebilirsiniz.
 * Frida Server'ın indirilebilmesi için bilgisayarınızın aktif internet bağlantısı olması gerekmektedir. İndirilen ikililer proje klasöründe saklanır, böylece sonraki çalıştırmalarda tekrar indirme yapılmaz.
+
+### Yerel API erişimi
+
+Panel yalnızca `127.0.0.1`, `localhost` veya `::1` Host adreslerini kabul eder. Origin başlığı varsa panel adresiyle aynı olmalıdır. Tüm `/api/` istekleri, her sunucu başlangıcında yenilenen `X-WebMEmu-Token` başlığını gerektirir. Tarayıcı bu anahtarı ana sayfadaki `webmemu-token` meta alanından otomatik alır. Harici test/API istemcileri önce `/` sayfasını okuyup aynı alanı başlıklarına eklemelidir; anahtarı URL'ye veya kalıcı kayıtlara yazmayın.
+
+### Akıllı bypass
+
+Hedef uygulamayı seçip **Akıllı bypass** düğmesine basın. Kurulu base/split APK dosyaları geçici klasöre okunur; toplam 256 MB ve DEX taramasında 128 MB sınırı vardır. Java adayı için yerel `universal_unpin.js` seçilir, Frida/Mitmweb/proxy/CA hazırlanır ve uygulama spawn modunda açılır. Uygulamada ağ isteği oluşturun. İnternetten script indirilmez, APK değiştirilmez veya yeniden imzalanmaz.
+
+`_smart_observer.js` hedef süreçteki desteklenen OkHttp/HttpsURLConnection yanıtlarını izler. HTTPS yanıtının sertifikası yerel Mitmweb CA açık anahtarıyla doğrulanırsa **HTTPS proxy doğrulandı** gösterilir. Bu, uygulamanın daha önce pinning kullandığının kanıtı değildir. Hook yükleme mesajı veya başka uygulamanın proxy trafiği başarı sayılmaz. İzleyicinin kapsamadığı kütüphaneler, trafik oluşmaması veya 90 saniyelik bekleme **Doğrulanamadı** sonucudur; bu, bypassın kesin başarısız olduğu anlamına da gelmez. Flutter, Unity, Xamarin ve Cronet işaretleri otomatik native yama yerine **Desteklenmiyor** verir. Bunlar sürüme özel analiz gerektirir. Mevcut elle script seçimi korunur. Oturumun Durdur düğmesi izleyiciyi de durdurur.
+
+Araştırma kaynakları: [Android Network Security Configuration](https://developer.android.com/privacy-and-security/security-config), [Frida Android](https://frida.re/docs/android/), [Mitmproxy Certificates](https://docs.mitmproxy.org/stable/concepts/certificates/), [Objection pinning komutu](https://github.com/sensepost/objection/blob/master/objection/console/helpfiles/android.sslpinning.disable.txt), [HTTP Toolkit Android rehberi](https://httptoolkit.com/docs/guides/android/). Diğer yöntemler (debug CA, APK yeniden paketleme, sürüme özel native müdahale) araştırıldı; bu sürümde otomatik yürütülmez.

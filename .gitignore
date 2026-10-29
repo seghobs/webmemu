@@ -17,6 +17,19 @@ tools/platform-tools-latest-windows.zip
 
 # Local device captures, downloaded APKs and generated test output
 artifacts/
+/.instagram-login/
+/my_profile
 .venv/
 .env
 .env.*
+!.env.example
+
+# Local ACCUNIQ dashboard dependencies, builds and measurements
+accuniq-dashboard/frontend/node_modules/
+accuniq-dashboard/frontend/.next/
+accuniq-dashboard/frontend/tsconfig.tsbuildinfo
+accuniq-dashboard/backend/data/
+accuniq-dashboard/test-output/
+accuniq-dashboard/.venv-macos/
+
+/_smart_runtime.js

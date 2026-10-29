@@ -14,7 +14,7 @@ class StudioUITests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         ui_app = Flask('ui-fixture', template_folder=str(ROOT/'templates'), static_folder=str(ROOT/'static'))
-        ui_app.add_url_rule('/', view_func=lambda: render_template('index.html'))
+        ui_app.add_url_rule('/', view_func=lambda: render_template('index.html', api_token='ui-test-token'))
         cls.server = make_server('127.0.0.1', 0, ui_app, threaded=True)
         cls.worker = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.worker.start()
@@ -54,6 +54,7 @@ class StudioUITests(unittest.TestCase):
 
     def api(self, route):
         req = route.request
+        self.assertEqual(req.headers.get('x-webmemu-token'), 'ui-test-token')
         path = req.url.split('/api/')[1].split('?')[0]
         data = req.post_data_json if req.post_data and 'application/json' in req.headers.get('content-type','') else None
         self.calls.append((path,data))
@@ -72,6 +73,13 @@ class StudioUITests(unittest.TestCase):
         elif path == 'get_logs': response.update(logs=self.logs, revision=self.revision)
         elif path == 'get_logcat': response['logs']=['09-15 12:30:00 I Demo: Ready','09-15 12:30:01 E Demo: Test error'] if not data.get('filter_text') else []
         elif path == 'clear_logs': self.logs=[];self.revision+=1
+        elif path == 'toggle_proxy': self.status['proxy_status'] = (data['proxy_ip']+':'+data['proxy_port']) if data['enabled'] else 'Kapatıldı'
+        elif path == 'start_mitmweb': self.status['mitmweb_running']=True
+        elif path == 'stop_mitmweb': self.status['mitmweb_running']=False
+        elif path == 'smart_bypass':
+            self.status['bypass_running']=True
+            self.status['smart']={'phase':'waiting','message':'HTTPS doğrulaması bekleniyor.','plan':{'signals':['okhttp'],'script':'universal_unpin.js'}}
+            response['smart']=self.status['smart']
         elif path == 'start_bypass': self.status['bypass_running']=True
         elif path == 'stop_bypass': self.status['bypass_running']=False
         elif path == 'log_frontend_error': self.errors.append(str(data))
@@ -173,6 +181,56 @@ class StudioUITests(unittest.TestCase):
             self.assertIn(action,[name for name,_ in self.calls])
         ids=self.page.locator('[id]').evaluate_all('(els) => els.map(el => el.id)')
         self.assertEqual(len(ids),len(set(ids)), 'Duplicate element IDs')
+
+    def test_smart_bypass_waits_for_target_https_evidence(self):
+        self.page.locator('#btn-smart-bypass').click()
+        expect(self.page.locator('#smart-bypass-status')).to_contain_text('Doğrulama bekleniyor')
+        self.assertIn('smart_bypass',[name for name,_ in self.calls])
+        expect(self.page.locator('#btn-smart-bypass')).to_be_disabled()
+        self.status['smart'].update(phase='verified',message='Hedef süreçte HTTPS doğrulandı.',host='example.com',http_status=200)
+        expect(self.page.locator('#smart-bypass-status')).to_contain_text('HTTPS proxy doğrulandı')
+        expect(self.page.locator('#smart-bypass-status')).to_contain_text('example.com')
+
+    def test_proxy_controls_show_state_and_allow_address_updates(self):
+        on = self.page.locator('#btn-proxy-on')
+        off = self.page.locator('#btn-proxy-off')
+        label = self.page.locator('#proxy-control-status')
+        expect(label).to_contain_text('Proxy açık')
+        expect(on).to_have_text('Açık')
+        expect(on).to_be_disabled()
+        off.click()
+        expect(label).to_have_text('Proxy kapalı')
+        expect(off).to_have_text('Kapalı')
+        expect(off).to_be_disabled()
+        on.click()
+        expect(label).to_contain_text('Proxy açık')
+        self.page.locator('#proxy-port').fill('8888')
+        expect(on).to_have_text('Uygula')
+        expect(on).to_be_enabled()
+        on.click()
+        expect(label).to_contain_text('127.0.0.1:8888')
+        expect(on).to_be_disabled()
+
+    def test_mitmweb_button_tracks_running_server_and_stops_it(self):
+        button = self.page.locator('#btn-start-mitmweb')
+        self.status['mitmweb_running'] = True
+        expect(button).to_have_text('Mitmweb Durdur')
+        button.click()
+        expect(button).to_have_text('Mitmweb Başlat')
+        self.assertIn(('stop_mitmweb', {}), self.calls)
+        self.assertNotIn(('start_mitmweb', {}), self.calls)
+        button.click()
+        expect(button).to_have_text('Mitmweb Durdur')
+        self.assertEqual([name for name,_ in self.calls if name in ('start_mitmweb','stop_mitmweb')],
+                         ['stop_mitmweb','start_mitmweb'])
+
+    def test_start_frida_also_starts_mitmweb_before_enabling_proxy(self):
+        self.status['frida_server_running'] = False
+        expect(self.page.locator('#btn-start-frida')).to_be_enabled()
+        self.page.locator('#btn-start-frida').click()
+        self.page.wait_for_function("!document.querySelector('#btn-start-frida').hasAttribute('aria-busy')")
+        actions = [name for name, _ in self.calls if name in ('start_frida','start_mitmweb','toggle_proxy')]
+        self.assertEqual(actions, ['start_frida','start_mitmweb','toggle_proxy'])
 
     def test_session_controls_and_disconnected_state(self):
         self.page.locator('#btn-start-bypass').click()

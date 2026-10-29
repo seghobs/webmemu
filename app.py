@@ -9,9 +9,14 @@ import ipaddress
 import time
 import glob
 import socket
+import secrets
+import urllib.request
+import urllib.error
+from urllib.parse import urlsplit
 import json
 from functools import wraps
 from runtime import SnapshotCache, JobRegistry
+from smart_bypass import SmartBypass
 from adb_recovery import owned_server
 from adb_service import AdbService
 from adb_tunnel import AdbTcpTunnel
@@ -33,6 +38,7 @@ def run_command(*args, **kwargs):
     return subprocess.run(*args, **kwargs)
 
 app = Flask(__name__)
+app.config["API_TOKEN"] = secrets.token_urlsafe(32)
 
 class BypassManager:
     def __init__(self, command_executor=None):
@@ -56,6 +62,8 @@ class BypassManager:
         self.log_revision = 0
         self.log_history = []
         self.proxy_status = "Bilinmiyor"
+        self._mitmweb_lock = threading.Lock()
+        self._mitmweb_process = None
         self.stealth_mode = False
         self.stealth_binary_name = "sys_agent"
         self.stealth_port = 13337
@@ -67,6 +75,7 @@ class BypassManager:
         self._last_cert_check_time = 0
         self.cache = SnapshotCache()
         self.jobs = JobRegistry()
+        self.smart = SmartBypass(self)
         self.device_serial = None
         self._device_lock = threading.Lock()
         self._adb_lock = threading.RLock()
@@ -294,23 +303,122 @@ class BypassManager:
             self.log(f"MEmu başlatılamadı: {e}", "error")
             return False, str(e)
 
-    def start_mitmweb(self):
-        self.log("Mitmweb yeni bir CMD penceresinde başlatılıyor...", "process")
+    def _mitmweb_ready(self):
         try:
-            subprocess.Popen("start cmd.exe /k \"mitmweb --set web_password=123456 --no-web-open-browser\"", shell=True)
-            self.log("Mitmweb başarıyla başlatıldı!", "success")
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            with opener.open('http://127.0.0.1:8081/?token=123456', timeout=.5) as response:
+                page = response.read(65536).lower()
+            if b'<title>mitmproxy</title>' not in page:
+                return False
+            with socket.create_connection(('127.0.0.1', 8080), timeout=.5):
+                return True
+        except (OSError, urllib.error.URLError):
+            return False
 
-            def open_browser():
-                import webbrowser
-                time.sleep(2.0)
-                webbrowser.open("http://127.0.0.1:8081/?token=123456")
-                self.log("Mitmweb arayüzü tarayıcıda otomatik olarak açıldı.", "success")
+    def start_mitmweb(self):
+        with self._mitmweb_lock:
+            if self._mitmweb_ready():
+                self.log('Mitmweb zaten çalışıyor; mevcut sunucu kullanılıyor.', 'success')
+                return True, 'Mitmweb zaten çalışıyor; mevcut sunucu kullanılıyor.'
+            for port in (8080, 8081):
+                try:
+                    with socket.create_connection(('127.0.0.1', port), timeout=.5):
+                        message = f'{port} portu kullanımda ancak Mitmweb hazır değil. Mevcut işlemi kontrol edin.'
+                        self.log(message, 'error')
+                        return False, message
+                except OSError:
+                    pass
+            executable = shutil.which('mitmweb')
+            if not executable:
+                return False, 'Mitmweb bulunamadı. Python ortamındaki kurulumu kontrol edin.'
+            log_path = os.path.join(self.project_dir, 'artifacts', 'mitmweb.log')
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            process = None
+            try:
+                self.log('Mitmweb başlatılıyor...', 'process')
+                with open(log_path, 'w', encoding='utf-8') as output:
+                    process = subprocess.Popen(
+                        [executable, '--listen-host', '127.0.0.1', '--listen-port', '8080',
+                         '--web-host', '127.0.0.1', '--web-port', '8081',
+                         '--set', 'web_password=123456', '--no-web-open-browser'],
+                        shell=False, stdout=output, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                self._mitmweb_process = process
+                deadline = time.monotonic() + 12
+                while time.monotonic() < deadline:
+                    if process.poll() is not None:
+                        with open(log_path, encoding='utf-8', errors='replace') as output:
+                            detail = output.read()[-2000:].strip()
+                        raise RuntimeError(detail or 'Mitmweb açılış sırasında kapandı.')
+                    if self._mitmweb_ready():
+                        import webbrowser
+                        webbrowser.open('http://127.0.0.1:8081/?token=123456')
+                        self.log('Mitmweb hazır; arayüz tarayıcıda açıldı.', 'success')
+                        return True, 'Mitmweb başlatıldı!'
+                    time.sleep(.2)
+                raise RuntimeError('Mitmweb hazır olma süresini aştı. artifacts/mitmweb.log dosyasını kontrol edin.')
+            except Exception as exc:
+                if process is not None and process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=3)
+                self.log(f'Mitmweb başlatılamadı: {exc}', 'error')
+                return False, str(exc)
 
-            threading.Thread(target=open_browser, daemon=True).start()
-            return True, "Mitmweb başlatıldı!"
-        except Exception as e:
-            self.log(f"Mitmweb başlatılamadı: {e}", "error")
-            return False, str(e)
+    def stop_mitmweb(self):
+        with self._mitmweb_lock:
+            try:
+                process = self._mitmweb_process
+                if os.name == 'nt':
+                    # Reuse after a panel restart: identify the actual listener,
+                    # then verify its command before stopping that exact process.
+                    script = r"""
+$ErrorActionPreference = 'Stop'
+$listeners = @(Get-NetTCPConnection -LocalPort 8080,8081 -State Listen -ErrorAction SilentlyContinue)
+$owners = @($listeners | Select-Object -ExpandProperty OwningProcess -Unique)
+if ($owners.Count -eq 0) { exit 0 }
+if ($owners.Count -ne 1) { throw '8080 ve 8081 farklı işlemler tarafından kullanılıyor.' }
+$target = Get-CimInstance Win32_Process -Filter ("ProcessId=" + $owners[0])
+if ($target.CommandLine -notmatch '(?i)(?:^|[\\/])mitmweb(?:\.exe)?(?:["\s]|$)') {
+    throw 'Port sahibi Mitmweb olarak doğrulanamadı; işlem durdurulmadı.'
+}
+Stop-Process -Id $target.ProcessId -ErrorAction Stop
+"""
+                    result = run_command(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script],
+                                         capture_output=True, text=True, timeout=8,
+                                         creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                    if result.returncode != 0:
+                        raise RuntimeError(result.stderr.strip() or 'Mitmweb durdurulamadı.')
+                elif process is not None and process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=3)
+                elif self._mitmweb_ready():
+                    raise RuntimeError('Bu Mitmweb işlemi panel tarafından başlatılmadı; kendi terminalinden durdurun.')
+                deadline = time.monotonic() + 4
+                while time.monotonic() < deadline:
+                    occupied = False
+                    for port in (8080, 8081):
+                        try:
+                            with socket.create_connection(('127.0.0.1', port), timeout=.3):
+                                occupied = True
+                        except OSError:
+                            pass
+                    if not occupied:
+                        self._mitmweb_process = None
+                        self.log('Mitmweb durduruldu.', 'success')
+                        return True, 'Mitmweb durduruldu.'
+                    time.sleep(.2)
+                raise RuntimeError('Mitmweb portları hâlâ kullanımda; durdurma doğrulanamadı.')
+            except Exception as exc:
+                self.log(f'Mitmweb durdurulamadı: {exc}', 'error')
+                return False, str(exc)
 
     def log(self, message, level="info"):
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -792,7 +900,7 @@ class BypassManager:
         self.log('Frida server durduruldu' if stopped else 'Frida server durdurulamadı', 'success' if stopped else 'error')
         return stopped
 
-    def start_bypass(self, app_package, script_name="nev1.js", start_on_profile=False, instagram_username="", bypass_mode="spawn", deep_cloak=False):
+    def start_bypass(self, app_package, script_name="nev1.js", start_on_profile=False, instagram_username="", bypass_mode="spawn", deep_cloak=False, smart_source=None):
         if not self.device_connected:
             self.check_devices()
         if not self.device_connected:
@@ -826,6 +934,14 @@ class BypassManager:
                     self.log("🛡️ Derin Cihaz & Root Gizleme (Samsung S25 Ultra) modülü eklendi.", "process")
                 except Exception as e:
                     self.log(f"Bundle oluşturma uyarısı: {e}", "warning")
+
+        if smart_source is not None:
+            runtime_path = os.path.join(self.project_dir, '_smart_runtime.js')
+            with open(script_path, encoding='utf-8') as selected:
+                source = selected.read()
+            with open(runtime_path, 'w', encoding='utf-8') as output:
+                output.write(source + '\n' + smart_source)
+            script_path = runtime_path
 
         cloak_info = " [🛡️ Samsung S25 Ultra & Anti-Root Cloak: Aktif]" if deep_cloak else ""
         self.log(f"Bypass başlatılıyor: {app_package} (Mod: {bypass_mode}){cloak_info}", "process")
@@ -913,6 +1029,7 @@ class BypassManager:
                 for line_bytes in iter(proc.stdout.readline, b''):
                     if line_bytes:
                         line = safe_decode(line_bytes)
+                        self.smart.event(line)
                         clean_line = line.strip()
                         lvl = "info"
 
@@ -957,6 +1074,7 @@ class BypassManager:
                     self._terminate_process(proc)
                 with self._process_lock:
                     if session_id == self._session_id:
+                        self.smart.ended()
                         self.log("Bypass sonlandı", "warning")
                         self.bypass_running = False
                         self.bypass_process = None
@@ -986,6 +1104,7 @@ class BypassManager:
                             pass
 
     def stop_bypass(self, app_package=None):
+        self.smart.ended()
         with self._process_lock:
             self.bypass_running = False
             self._session_id += 1
@@ -1687,6 +1806,24 @@ class BypassManager:
 manager = BypassManager()
 
 @app.before_request
+def protect_local_api():
+    try:
+        host = urlsplit('http://' + request.host)
+        if host.hostname not in ('127.0.0.1', 'localhost', '::1') or host.username or host.password:
+            raise ValueError()
+        host.port  # Reject malformed ports too.
+    except ValueError:
+        return jsonify(success=False, error="Güvenilmeyen sunucu adresi."), 403
+    origin = request.headers.get('Origin')
+    if origin is not None and origin != request.host_url.rstrip('/'):
+        return jsonify(success=False, error="Güvenilmeyen istek kaynağı."), 403
+    if request.path.startswith('/api/'):
+        token = request.headers.get('X-WebMEmu-Token', '')
+        if not secrets.compare_digest(token.encode('utf-8'), app.config['API_TOKEN'].encode('utf-8')):
+            return jsonify(success=False, error="Geçersiz oturum anahtarı. Paneli yenileyin."), 403
+
+
+@app.before_request
 def validate_api_input():
     if request.is_json:
         data = request.get_json(silent=True)
@@ -1743,13 +1880,17 @@ def get_job(job_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    response = app.make_response(render_template('index.html', api_token=app.config['API_TOKEN']))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
     value = manager.cache.get('status', manager.refresh_status, 1.5, manager.status_snapshot())
     # Session flags change immediately; the device snapshot is refreshed independently.
-    value.update(bypass_running=manager.bypass_running, stealth_mode=manager.stealth_mode, api_version=2)
+    value.update(bypass_running=manager.bypass_running, stealth_mode=manager.stealth_mode, api_version=2,
+                 mitmweb_running=manager.cache.get('mitmweb', manager._mitmweb_ready, 2, False),
+                 smart=manager.smart.snapshot())
     return jsonify(value)
 
 @app.route('/api/toggle_stealth', methods=['POST'])
@@ -1825,6 +1966,13 @@ def start_mitmweb():
     success, msg = manager.start_mitmweb()
     return jsonify({"success": success, "message": msg})
 
+@app.route('/api/stop_mitmweb', methods=['POST'])
+@async_action
+def stop_mitmweb():
+    success, msg = manager.stop_mitmweb()
+    return jsonify(success=success, message=msg)
+
+
 @app.route('/api/start_frida', methods=['POST'])
 @async_action
 def start_frida():
@@ -1834,8 +1982,27 @@ def start_frida():
 @app.route('/api/stop_frida', methods=['POST'])
 @async_action
 def stop_frida():
-    success = manager.stop_frida_server()
-    return jsonify(success=success, status="stopped" if success else "failed")
+    stopped = manager.stop_frida_server()
+    if not stopped:
+        return jsonify(success=False, status='failed', error='Frida durdurulduğu doğrulanamadı; proxy değiştirilmedi.')
+    try:
+        proxy_disabled = manager.disable_proxy()
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
+        return jsonify(success=False, status='stopped', error=f'Frida durduruldu ancak proxy kapatılamadı: {exc}')
+    if not proxy_disabled:
+        return jsonify(success=False, status='stopped', error='Frida durduruldu ancak proxy kapatılamadı.')
+    mitmweb_stopped, message = manager.stop_mitmweb()
+    if not mitmweb_stopped:
+        return jsonify(success=False, status='stopped', proxy_status=manager.proxy_status,
+                       error=f'Frida ve proxy kapatıldı ancak Mitmweb durdurulamadı: {message}')
+    return jsonify(success=True, status='stopped', proxy_status=manager.proxy_status, mitmweb_running=False)
+
+@app.route('/api/smart_bypass', methods=['POST'])
+@async_action
+def smart_bypass():
+    data = request.json or {}
+    return jsonify(manager.smart.start(data.get('app_package',''), data.get('proxy_ip','127.0.0.1'),
+                                       data.get('proxy_port','8080')))
 
 @app.route('/api/start_bypass', methods=['POST'])
 @async_action
@@ -1882,9 +2049,10 @@ def force_stop_package():
     data = request.json or {}
     app_package = data.get("app_package", "")
     if app_package:
-        manager.run_adb_cmd(f"shell pm disable-user --user 0 {app_package}")
-        manager.run_adb_cmd(f"shell pm enable {app_package}")
-        manager.log(f"{app_package} sonlandırıldı ve arka plan/recent listesinden temizlendi.", "success")
+        output = manager.run_adb_cmd(f"shell am force-stop {app_package}")
+        if output.startswith('Hata:'):
+            return jsonify(success=False, error=output)
+        manager.log(f"{app_package} sonlandırıldı.", "success")
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Geçersiz paket"})
 

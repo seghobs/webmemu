@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import urllib.request
+from local_api import panel_open
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from adb_reverse import AdbReverseTunnels
 
@@ -16,11 +17,11 @@ base = sys.argv[2].rstrip('/') if len(sys.argv) == 3 else None
 def panel_command(command):
     req = urllib.request.Request(base+'/api/run_adb', data=json.dumps({'command':command}).encode(),
                                  headers={'Content-Type':'application/json'})
-    with urllib.request.urlopen(req,timeout=5) as response:
+    with panel_open(req,timeout=5) as response:
         accepted = json.load(response)
     deadline = time.monotonic()+12
     while time.monotonic() < deadline:
-        with urllib.request.urlopen(base+'/api/jobs/'+accepted['job_id'],timeout=5) as response:
+        with panel_open(base+'/api/jobs/'+accepted['job_id'],timeout=5) as response:
             job = json.load(response)
         if job['state'] in ('completed','failed'):
             assert job['state'] == 'completed', job

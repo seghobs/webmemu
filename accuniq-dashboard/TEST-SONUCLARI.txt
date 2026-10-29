@@ -1,0 +1,37 @@
+ACCUNIQ Studio — 4 Ekim 2026
+
+Backend: 16 unittest senaryosu başarılı.
+Next.js: üretim derlemesi ve TypeScript kontrolü başarılı.
+Tarayıcı: üretim Next.js + gerçek FastAPI + ayrı SQLite ile 16 akış başarılı.
+
+Doğrulanan akışlar:
+- Boş başlangıç; kendiliğinden örnek veri yüklenmemesi.
+- Profil oluşturma.
+- Geçersiz QR'ın kayıt oluşturmadan reddedilmesi.
+- APK'daki sabit örnek QR ile doğru metrik önizleme ve kayıt.
+- Tekrar içe aktarmanın ikinci kayıt oluşturmaması.
+- QR görselinden native text/format/cancelled sözleşmesiyle önizleme ve tekrar kayıt koruması.
+- DEX analiz ekranı, kaynak kanıtları ve rapor indirme.
+- Backend native tarama iptali, boş veri, QR dışı biçim ve profil koruması.
+- DEX raporu/ZIP içeriği ve bütünlük kontrolü.
+- CSV indirme.
+- Detay, ham alanlar, Escape ile diyalog kapatma.
+- USB/Bluetooth bekliyor, QR hazır durumları.
+- API arama ve QR alan haritası.
+- Açıkça etiketlenmiş örnek profil ve trend grafiği.
+- 390px mobil ve 768px tablet genişliğinde tüm menüler.
+- Kamera izin reddinin kontrollü gösterimi.
+- Backend kesintisi ve yeniden deneme ile toparlanma.
+
+Beklenmeyen JavaScript veya konsol hatası: 0.
+Mobil/tablo erişilebilirlik etiketinden kaynaklanan sayfa taşması düzeltildi.
+Tablet menü düğmelerine kalıcı erişilebilir adlar eklendi.
+
+Sınırlar:
+- Fiziksel BC380 bağlı değil; USB/Bluetooth protokolü denenmedi.
+- Gerçek kamera donanımıyla tarama denenmedi; izin reddi sınandı.
+- ACCUNIQ bulutuna istek gönderilmedi.
+- QR biçim kontrolü, cihazın ölçüm doğruluğu veya kriptografik imza doğrulaması değildir.
+
+Kanıtlar yerel test-output/browser-report.json ve backend-tests.txt içinde.
+Ekran görüntüleri test-output altında; çalışma verileri Git dışında tutulur.

@@ -1,0 +1,727 @@
+[
+  {
+    "name": "protocol_command",
+    "start": 0,
+    "end": 2
+  },
+  {
+    "name": "ap_version",
+    "start": 2,
+    "end": 8
+  },
+  {
+    "name": "received_date",
+    "start": 8,
+    "end": 18
+  },
+  {
+    "name": "id_number",
+    "start": 18,
+    "end": 38
+  },
+  {
+    "name": "sex",
+    "start": 38,
+    "end": 39
+  },
+  {
+    "name": "age",
+    "start": 39,
+    "end": 42
+  },
+  {
+    "name": "height",
+    "start": 42,
+    "end": 46
+  },
+  {
+    "name": "weight",
+    "start": 46,
+    "end": 50
+  },
+  {
+    "name": "weight_min_limit",
+    "start": 50,
+    "end": 54
+  },
+  {
+    "name": "weight_low_limit",
+    "start": 54,
+    "end": 58
+  },
+  {
+    "name": "std_weight",
+    "start": 58,
+    "end": 62
+  },
+  {
+    "name": "weight_top_limit",
+    "start": 62,
+    "end": 66
+  },
+  {
+    "name": "weight_max_limit",
+    "start": 66,
+    "end": 70
+  },
+  {
+    "name": "weight_recommend",
+    "start": 70,
+    "end": 74
+  },
+  {
+    "name": "lbm_quantity",
+    "start": 74,
+    "end": 78
+  },
+  {
+    "name": "lbm_low_limit",
+    "start": 78,
+    "end": 82
+  },
+  {
+    "name": "lbm_top_limit",
+    "start": 82,
+    "end": 86
+  },
+  {
+    "name": "muscle_quantity",
+    "start": 86,
+    "end": 90
+  },
+  {
+    "name": "muscle_min_limit",
+    "start": 90,
+    "end": 94
+  },
+  {
+    "name": "muscle_low_limit",
+    "start": 94,
+    "end": 98
+  },
+  {
+    "name": "muscle_standard",
+    "start": 98,
+    "end": 102
+  },
+  {
+    "name": "muscle_top_limit",
+    "start": 102,
+    "end": 106
+  },
+  {
+    "name": "muscle_max_limit",
+    "start": 106,
+    "end": 110
+  },
+  {
+    "name": "tbw_quantity",
+    "start": 110,
+    "end": 114
+  },
+  {
+    "name": "tbw_min_limit",
+    "start": 114,
+    "end": 118
+  },
+  {
+    "name": "tbw_low_limit",
+    "start": 118,
+    "end": 122
+  },
+  {
+    "name": "tbw_top_limit",
+    "start": 122,
+    "end": 126
+  },
+  {
+    "name": "tbw_max_limit",
+    "start": 126,
+    "end": 130
+  },
+  {
+    "name": "protein_quantity",
+    "start": 130,
+    "end": 134
+  },
+  {
+    "name": "protein_low_limit",
+    "start": 134,
+    "end": 138
+  },
+  {
+    "name": "protein_top_limit",
+    "start": 138,
+    "end": 142
+  },
+  {
+    "name": "mineral_quantity",
+    "start": 142,
+    "end": 146
+  },
+  {
+    "name": "mineral_low_limit",
+    "start": 146,
+    "end": 150
+  },
+  {
+    "name": "mineral_top_limit",
+    "start": 150,
+    "end": 154
+  },
+  {
+    "name": "mbf_quantity",
+    "start": 154,
+    "end": 158
+  },
+  {
+    "name": "mbf_min_limit",
+    "start": 158,
+    "end": 162
+  },
+  {
+    "name": "mbf_low_limit",
+    "start": 162,
+    "end": 166
+  },
+  {
+    "name": "mbf_standard",
+    "start": 166,
+    "end": 170
+  },
+  {
+    "name": "mbf_top_limit",
+    "start": 170,
+    "end": 174
+  },
+  {
+    "name": "mbf_max_limit",
+    "start": 174,
+    "end": 178
+  },
+  {
+    "name": "bone_slim",
+    "start": 178,
+    "end": 182
+  },
+  {
+    "name": "bone_slim_min",
+    "start": 182,
+    "end": 186
+  },
+  {
+    "name": "bone_slim_low",
+    "start": 186,
+    "end": 190
+  },
+  {
+    "name": "bone_slim_top",
+    "start": 190,
+    "end": 194
+  },
+  {
+    "name": "bone_slim_max",
+    "start": 194,
+    "end": 198
+  },
+  {
+    "name": "bmi",
+    "start": 198,
+    "end": 202
+  },
+  {
+    "name": "bmi_min_limit",
+    "start": 202,
+    "end": 206
+  },
+  {
+    "name": "bmi_low_limit",
+    "start": 206,
+    "end": 210
+  },
+  {
+    "name": "bmi_top_limit",
+    "start": 210,
+    "end": 214
+  },
+  {
+    "name": "bmi_topmax_limit",
+    "start": 214,
+    "end": 218
+  },
+  {
+    "name": "bmi_max_limit",
+    "start": 218,
+    "end": 222
+  },
+  {
+    "name": "pbf_rate",
+    "start": 222,
+    "end": 226
+  },
+  {
+    "name": "pbf_min_limit",
+    "start": 226,
+    "end": 230
+  },
+  {
+    "name": "pbf_low_limit",
+    "start": 230,
+    "end": 234
+  },
+  {
+    "name": "pbf_top_limit",
+    "start": 234,
+    "end": 238
+  },
+  {
+    "name": "pbf_topmax_limit",
+    "start": 238,
+    "end": 242
+  },
+  {
+    "name": "pbf_max_limit",
+    "start": 242,
+    "end": 246
+  },
+  {
+    "name": "whr_rate",
+    "start": 246,
+    "end": 249
+  },
+  {
+    "name": "whr_min",
+    "start": 249,
+    "end": 252
+  },
+  {
+    "name": "whr_low",
+    "start": 252,
+    "end": 255
+  },
+  {
+    "name": "whr_top",
+    "start": 255,
+    "end": 258
+  },
+  {
+    "name": "whr_max",
+    "start": 258,
+    "end": 261
+  },
+  {
+    "name": "vsr",
+    "start": 261,
+    "end": 264
+  },
+  {
+    "name": "VSR_min_limit",
+    "start": 264,
+    "end": 267
+  },
+  {
+    "name": "VSR_low_limit",
+    "start": 267,
+    "end": 270
+  },
+  {
+    "name": "VSR_top_limit",
+    "start": 270,
+    "end": 273
+  },
+  {
+    "name": "VSR_max_limit",
+    "start": 273,
+    "end": 276
+  },
+  {
+    "name": "whr_type",
+    "start": 276,
+    "end": 277
+  },
+  {
+    "name": "whr_level",
+    "start": 277,
+    "end": 279
+  },
+  {
+    "name": "vfa",
+    "start": 279,
+    "end": 282
+  },
+  {
+    "name": "vfa_min",
+    "start": 282,
+    "end": 285
+  },
+  {
+    "name": "vfa_low",
+    "start": 285,
+    "end": 288
+  },
+  {
+    "name": "vfa_top",
+    "start": 288,
+    "end": 291
+  },
+  {
+    "name": "vfa_max",
+    "start": 291,
+    "end": 294
+  },
+  {
+    "name": "mvf_quantity",
+    "start": 294,
+    "end": 298
+  },
+  {
+    "name": "msf_quantity",
+    "start": 298,
+    "end": 302
+  },
+  {
+    "name": "sfm_top",
+    "start": 302,
+    "end": 306
+  },
+  {
+    "name": "bcm_in_water",
+    "start": 306,
+    "end": 310
+  },
+  {
+    "name": "bcm_out_water",
+    "start": 310,
+    "end": 314
+  },
+  {
+    "name": "edema",
+    "start": 314,
+    "end": 317
+  },
+  {
+    "name": "bujong_judge_min",
+    "start": 317,
+    "end": 320
+  },
+  {
+    "name": "bujong_judge_low",
+    "start": 320,
+    "end": 323
+  },
+  {
+    "name": "bujong_judge_top",
+    "start": 323,
+    "end": 326
+  },
+  {
+    "name": "bujong_judge_max",
+    "start": 326,
+    "end": 330
+  },
+  {
+    "name": "fat_type",
+    "start": 330,
+    "end": 332
+  },
+  {
+    "name": "fat_xy",
+    "start": 332,
+    "end": 334
+  },
+  {
+    "name": "body_age",
+    "start": 334,
+    "end": 337
+  },
+  {
+    "name": "bmr",
+    "start": 337,
+    "end": 341
+  },
+  {
+    "name": "calory",
+    "start": 341,
+    "end": 345
+  },
+  {
+    "name": "mbf_control_step",
+    "start": 345,
+    "end": 346
+  },
+  {
+    "name": "bcm",
+    "start": 346,
+    "end": 350
+  },
+  {
+    "name": "weight_control_value",
+    "start": 350,
+    "end": 355
+  },
+  {
+    "name": "muscle_control_value",
+    "start": 355,
+    "end": 360
+  },
+  {
+    "name": "mbf_control_value",
+    "start": 360,
+    "end": 365
+  },
+  {
+    "name": "lbm_control_value",
+    "start": 365,
+    "end": 370
+  },
+  {
+    "name": "target_to_control",
+    "start": 370,
+    "end": 375
+  },
+  {
+    "name": "control_guide_for_me",
+    "start": 375,
+    "end": 376
+  },
+  {
+    "name": "week_time_for_calory",
+    "start": 376,
+    "end": 379
+  },
+  {
+    "name": "fat",
+    "start": 379,
+    "end": 384
+  },
+  {
+    "name": "fat_low",
+    "start": 384,
+    "end": 389
+  },
+  {
+    "name": "fat_top",
+    "start": 389,
+    "end": 393
+  },
+  {
+    "name": "waist_measurement",
+    "start": 393,
+    "end": 397
+  },
+  {
+    "name": "impedance",
+    "start": 397,
+    "end": 401
+  },
+  {
+    "name": "left_hand_impedance_5k",
+    "start": 401,
+    "end": 404
+  },
+  {
+    "name": "right_hand_impedance_5k",
+    "start": 404,
+    "end": 407
+  },
+  {
+    "name": "left_foot_impedance_5k",
+    "start": 407,
+    "end": 410
+  },
+  {
+    "name": "right_foot_impedance_5k",
+    "start": 410,
+    "end": 413
+  },
+  {
+    "name": "trunk_impedance_5k",
+    "start": 413,
+    "end": 416
+  },
+  {
+    "name": "left_hand_impedance_50k",
+    "start": 416,
+    "end": 419
+  },
+  {
+    "name": "right_hand_impedance_50k",
+    "start": 419,
+    "end": 422
+  },
+  {
+    "name": "left_foot_impedance_50k",
+    "start": 422,
+    "end": 425
+  },
+  {
+    "name": "right_foot_impedance_50k",
+    "start": 425,
+    "end": 428
+  },
+  {
+    "name": "trunk_impedance_50k",
+    "start": 428,
+    "end": 431
+  },
+  {
+    "name": "left_hand_impedance_250k",
+    "start": 431,
+    "end": 434
+  },
+  {
+    "name": "right_hand_impedance_250k",
+    "start": 434,
+    "end": 437
+  },
+  {
+    "name": "left_foot_impedance_250k",
+    "start": 437,
+    "end": 440
+  },
+  {
+    "name": "right_foot_impedance_250k",
+    "start": 440,
+    "end": 443
+  },
+  {
+    "name": "trunk_impedance_250k",
+    "start": 443,
+    "end": 446
+  },
+  {
+    "name": "beauty_weight",
+    "start": 446,
+    "end": 450
+  },
+  {
+    "name": "total_score",
+    "start": 450,
+    "end": 453
+  },
+  {
+    "name": "pa_quantity",
+    "start": 453,
+    "end": 456
+  },
+  {
+    "name": "slm_graph_percent",
+    "start": 456,
+    "end": 459
+  },
+  {
+    "name": "mode",
+    "start": 459,
+    "end": 465
+  },
+  {
+    "name": "protein_grade",
+    "start": 465,
+    "end": 466
+  },
+  {
+    "name": "mineral_grade",
+    "start": 466,
+    "end": 467
+  },
+  {
+    "name": "bujong_judge",
+    "start": 467,
+    "end": 468
+  },
+  {
+    "name": "muscle_grade_i",
+    "start": 468,
+    "end": 473
+  },
+  {
+    "name": "mbf_grade_i",
+    "start": 473,
+    "end": 478
+  },
+  {
+    "name": "kiko_kids_state",
+    "start": 478,
+    "end": 479
+  },
+  {
+    "name": "Kiko_fatXY",
+    "start": 479,
+    "end": 482
+  },
+  {
+    "name": "weight_for_kiko",
+    "start": 482,
+    "end": 485
+  },
+  {
+    "name": "height_for_kiko",
+    "start": 485,
+    "end": 488
+  },
+  {
+    "name": "sys",
+    "start": 488,
+    "end": 491
+  },
+  {
+    "name": "mean",
+    "start": 491,
+    "end": 494
+  },
+  {
+    "name": "dias",
+    "start": 494,
+    "end": 497
+  },
+  {
+    "name": "pulse",
+    "start": 497,
+    "end": 500
+  },
+  {
+    "name": "prp",
+    "start": 500,
+    "end": 505
+  },
+  {
+    "name": "sys_se",
+    "start": 505,
+    "end": 508
+  },
+  {
+    "name": "mean_se",
+    "start": 508,
+    "end": 511
+  },
+  {
+    "name": "dias_se",
+    "start": 511,
+    "end": 514
+  },
+  {
+    "name": "bca_main_set",
+    "start": 514,
+    "end": 523
+  },
+  {
+    "name": "dex_mode",
+    "start": 523,
+    "end": 524
+  },
+  {
+    "name": "bmr_mode",
+    "start": 524,
+    "end": 525
+  },
+  {
+    "name": "IsKgLb",
+    "start": 525,
+    "end": 526
+  },
+  {
+    "name": "end_mark",
+    "start": 526,
+    "end": 527
+  }
+]
